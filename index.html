@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Comics Viewer</title>
+  </head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      white-space: pre;
+    }
+    h1 {
+      color: #333;
+    }
+    #header {
+      background-color: #f0f0f0;
+      padding: 10px;
+      font-size: 6vw;
+    }
+    #selectedDate {
+      font-size: 3vw;
+    }
+    input {
+      padding: 5px;
+      margin: 10px;
+    }
+    #comicsContainer {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    img {
+      margin: 10px;
+    }
+  </style>
+  <body>
+    <input type="date" id="selectedDate" />
+    <h1 id="header">Comics</h1>
+    <div id="comicsContainer"></div>
+    <script>
+      const dateSelector = document.getElementById("selectedDate");
+      dateSelector.max = new Date().toISOString().split("T")[0];
+      dateSelector.value = dateSelector.max;
+      showComics();
+
+      function showComics() {
+        const selectedDate = document.getElementById("selectedDate").value;
+        if (!selectedDate) return;
+        const container = document.getElementById("comicsContainer");
+        container.innerHTML = "";
+        const comics = ["bignate", "pearlsbeforeswine"];
+        const comicsNames = ["Big Nate", "Pearls Before Swine"];
+        comics.forEach((comic) => {
+          const text = document.createElement("p");
+          text.innerText = comicsNames[comics.indexOf(comic)];
+          text.id = comic;
+          text.style.fontSize = "3vw";
+          container.appendChild(text);
+          const img = document.createElement("img");
+          img.src = `./comics/${comic}/${selectedDate}/comic.png`;
+          img.style.width = "100%";
+          img.onerror = (event) => {
+            event.target.style.display = "none";
+            const text = document.getElementById(comic);
+            text.innerHTML +=
+              " <span style='color: gray'>(Not available)</span> ";
+          };
+          container.appendChild(img);
+        });
+      }
+
+      document
+        .getElementById("selectedDate")
+        .addEventListener("change", showComics);
+    </script>
+  </body>
+</html>
