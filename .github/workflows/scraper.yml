@@ -16,11 +16,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
       - name: Remove Chrome
-        run: sudo apt purge google-chrome-stable
+        run: sudo apt-get purge google-chrome-stable
       - name: Remove default Chromium
-        run: sudo apt purge chromium-browser
+        run: sudo apt-get purge chromium-browser
       - name: Install a new Chromium
-        run: sudo apt install -y chromium-browser
+        run: sudo apt-get install -y chromium-browser
       - name: Run scraper
         working-directory: ./scraper
         run: |

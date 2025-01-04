@@ -63,7 +63,20 @@ def getComicAtDate(comic, comicDate):
     print(f"Downloaded {comic} for {comicDate}")
 
 
-followedComics = ["bignate", "pearlsbeforeswine"]
+followedComics = [
+    "bignate",
+    "pearlsbeforeswine",
+    "luann",
+    "brewsterrockit",
+    "forbetterorforworse",
+    "calvinandhobbes",
+    "garfield",
+    "pickles",
+    "foxtrot",
+    "doonesbury",
+    "crabgrass",
+    "daddyshome",
+]
 
 for comic in followedComics:
     for i in range(8):

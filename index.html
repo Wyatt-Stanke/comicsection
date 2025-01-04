@@ -47,8 +47,34 @@
         if (!selectedDate) return;
         const container = document.getElementById("comicsContainer");
         container.innerHTML = "";
-        const comics = ["bignate", "pearlsbeforeswine"];
-        const comicsNames = ["Big Nate", "Pearls Before Swine"];
+        const comics = [
+          "bignate",
+          "pearlsbeforeswine",
+          "luann",
+          "brewsterrockit",
+          "forbetterorforworse",
+          "calvinandhobbes",
+          "garfield",
+          "pickles",
+          "foxtrot",
+          "doonesbury",
+          "crabgrass",
+          "daddyshome",
+        ];
+        const comicsNames = [
+          "Big Nate",
+          "Pearls Before Swine",
+          "Luann",
+          "Brewster Rockit",
+          "For Better or For Worse",
+          "Calvin and Hobbes",
+          "Garfield",
+          "Pickles",
+          "Foxtrot",
+          "Doonesbury",
+          "Crabgrass",
+          "Daddy's Home",
+        ];
         comics.forEach((comic) => {
           const text = document.createElement("p");
           text.innerText = comicsNames[comics.indexOf(comic)];
