@@ -15,6 +15,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v2
+      - uses: browser-actions/setup-chrome@v1
       - name: Run scraper
         working-directory: ./scraper
         run: |
