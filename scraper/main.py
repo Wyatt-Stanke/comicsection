@@ -1,32 +1,33 @@
 from io import BytesIO
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
 from datetime import date
 import os
 import requests
 from PIL import Image
 from datetime import timedelta
 
-# Set up the Chrome WebDriver
-options = webdriver.ChromeOptions()
-options.add_argument("--ignore-certificate-errors")
-options.add_argument("--ignore-certificate-errors-spki-list")
-options.add_argument("--ignore-ssl-errors")
-options.add_argument("--disable-dev-shm-usage")
-options.add_argument("--headless=new")
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-extensions")
-options.add_argument("--dns-prefetch-disable")
-options.add_argument("--disable-gpu")
-options.add_argument("--disable-default-apps")
-options.add_argument("--disable-features=Translate")
-options.add_argument("--disable-features=PrivacySandboxSettings4")
+chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
 
-service = Service(ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service, options=options)
+chrome_options = Options()
+options = [
+    "--headless=new",
+    "--disable-gpu",
+    "--window-size=1920,1200",
+    "--ignore-certificate-errors",
+    "--disable-extensions",
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
+]
+for option in options:
+    chrome_options.add_argument(option)
+
+driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
 
 
 def getComicAtDate(comic, comicDate):
