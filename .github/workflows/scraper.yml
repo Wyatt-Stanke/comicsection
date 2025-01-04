@@ -14,7 +14,7 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
       - name: Remove Chrome
         run: sudo apt-get purge google-chrome-stable
       - name: Remove default Chromium
