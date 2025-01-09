@@ -104,9 +104,10 @@ def scrape_job(comic_name, job_func, days_past, **kwargs):
             print(f"Comic {comic_name} for {comic_date} saved")
         else:
             print(f"Comic {comic_name} for {comic_date} not found")
-            # Save a placeholder file if the comic is not found
-            with open(place_holder_path, "w+", encoding="utf-8") as f:
-                f.write("")
+            if comic_date < date.today() - timedelta(days=3):
+                # Save a placeholder file if the comic is not found
+                with open(place_holder_path, "w+", encoding="utf-8") as f:
+                    f.write("")
 
 
 for comic in followedComics:
