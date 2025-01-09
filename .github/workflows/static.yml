@@ -54,12 +54,12 @@ jobs:
             for (const folder of fs.readdirSync("comics")) {
               // If {today}/comic.webp exists, add a <link rel="preload"> tag for it
               if (fs.existsSync(`comics/${folder}/${today}/comic.webp`)) {
-                preload += `<link rel="preload" href="/comics/${folder}/${today}/comic.webp" as="image" type="image/webp">\n`;
+                preload += `<link rel="preload" href="./comics/${folder}/${today}/comic.webp" as="image" type="image/webp">\n`;
                 continue;
               }
               // If {yesterday}/comic.webp exists, add a <link rel="preload"> tag for it
               if (fs.existsSync(`comics/${folder}/${yesterday}/comic.webp`)) {
-                preload += `<link rel="preload" href="/comics/${folder}/${yesterday}/comic.webp" as="image" type="image/webp">\n`;
+                preload += `<link rel="preload" href="./comics/${folder}/${yesterday}/comic.webp" as="image" type="image/webp">\n`;
               }
             }
             // Write the <link rel="preload"> tags to index.html
