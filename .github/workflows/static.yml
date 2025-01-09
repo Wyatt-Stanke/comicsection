@@ -35,11 +35,16 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
+      - name: Replace update time in index.html
+        run: |
+          current_time=$(date +%s)
+          date_js="new Date(${current_time}000)"
+          sed -i 's|/\*lastUpdated\*/ null|'"$date_js"'|g' index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: '.'
+          path: "."
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
