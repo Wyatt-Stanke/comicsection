@@ -87,7 +87,7 @@ def scrape_job(comic_name, job_func, days_past, **kwargs):
     for i in range(days_past):
         comic_date = date.today() - timedelta(days=i)
         image_path = os.path.join(
-            "..", "comics", comic_name, comic_date.strftime("%Y-%m-%d"), "comic.png"
+            "..", "comics", comic_name, comic_date.strftime("%Y-%m-%d"), "comic.webp"
         )
         place_holder_path = os.path.join(
             "..", "comics", comic_name, comic_date.strftime("%Y-%m-%d"), ".placeholder"
