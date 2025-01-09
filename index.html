@@ -47,46 +47,34 @@
         if (!selectedDate) return;
         const container = document.getElementById("comicsContainer");
         container.innerHTML = "";
-        const comics = [
-          "bignate",
-          "pearlsbeforeswine",
-          "luann",
-          "brewsterrockit",
-          "forbetterorforworse",
-          "calvinandhobbes",
-          "garfield",
-          "pickles",
-          "foxtrot",
-          "doonesbury",
-          "crabgrass",
-          "daddyshome",
+        const comicsData = [
+          { id: "bignate", name: "Big Nate" },
+          { id: "pearlsbeforeswine", name: "Pearls Before Swine" },
+          { id: "luann", name: "Luann" },
+          { id: "brewsterrockit", name: "Brewster Rockit" },
+          { id: "forbetterorforworse", name: "For Better or For Worse" },
+          { id: "calvinandhobbes", name: "Calvin and Hobbes" },
+          { id: "garfield", name: "Garfield" },
+          { id: "pickles", name: "Pickles" },
+          { id: "foxtrot", name: "Foxtrot" },
+          { id: "doonesbury", name: "Doonesbury" },
+          { id: "crabgrass", name: "Crabgrass" },
+          { id: "daddyshome", name: "Daddy's Home" },
+          { id: "candorville", name: "Candorville" },
         ];
-        const comicsNames = [
-          "Big Nate",
-          "Pearls Before Swine",
-          "Luann",
-          "Brewster Rockit",
-          "For Better or For Worse",
-          "Calvin and Hobbes",
-          "Garfield",
-          "Pickles",
-          "Foxtrot",
-          "Doonesbury",
-          "Crabgrass",
-          "Daddy's Home",
-        ];
-        comics.forEach((comic) => {
+
+        comicsData.forEach((comic) => {
           const text = document.createElement("p");
-          text.innerText = comicsNames[comics.indexOf(comic)];
-          text.id = comic;
+          text.innerText = comic.name;
+          text.id = comic.id;
           text.style.fontSize = "3vw";
           container.appendChild(text);
           const img = document.createElement("img");
-          img.src = `./comics/${comic}/${selectedDate}/comic.png`;
+          img.src = `./comics/${comic.id}/${selectedDate}/comic.png`;
           img.style.width = "100%";
           img.onerror = (event) => {
             event.target.style.display = "none";
-            const text = document.getElementById(comic);
+            const text = document.getElementById(comic.id);
             text.innerHTML +=
               " <span style='color: gray'>(Not available)</span> ";
           };
