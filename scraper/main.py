@@ -105,9 +105,7 @@ def scrape_job(comic_name, job_func, days_past, **kwargs):
         else:
             print(f"Comic {comic_name} for {comic_date} not found")
             # Save a placeholder file if the comic is not found
-            with open(
-                os.path.join(image_path, "..", ".placeholder"), "w", encoding="utf-8"
-            ) as f:
+            with open(place_holder_path, "w+", encoding="utf-8") as f:
                 f.write("")
 
 
