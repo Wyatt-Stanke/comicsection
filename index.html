@@ -124,6 +124,7 @@
         if (!selectedDate) return;
         const container = document.getElementById("comicsContainer");
         container.innerHTML = "";
+        const fragment = new DocumentFragment();
 
         comicsData.forEach((comic) => {
           const selectedComics = JSON.parse(
@@ -135,7 +136,7 @@
           text.innerText = comic.name;
           text.id = comic.id;
           text.style.fontSize = "3vw";
-          container.appendChild(text);
+          fragment.appendChild(text);
           const img = document.createElement("img");
           img.src = `./comics/${comic.id}/${selectedDate}/comic.webp`;
           img.style.width = "100%";
@@ -145,8 +146,10 @@
             text.innerHTML +=
               " <span style='color: gray'>(Not available)</span> ";
           };
-          container.appendChild(img);
+          fragment.appendChild(img);
         });
+
+        container.appendChild(fragment);
       }
 
       document
