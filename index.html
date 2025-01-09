@@ -2,6 +2,8 @@
 <html>
   <head>
     <title>Comics Viewer</title>
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="manifest" href="manifest.json" />
   </head>
   <style>
     body {
@@ -31,11 +33,45 @@
     img {
       margin: 10px;
     }
+    button {
+      font-size: 3vw;
+      padding: 10px;
+      margin: 10px;
+    }
+    #comicsModal {
+      font-size: 3vw;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    #comicsModalContent {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+    }
   </style>
   <body>
-    <input type="date" id="selectedDate" />
+    <div style="display: flex; justify-content: center; align-items: center">
+      <input type="date" id="selectedDate" />
+      <button id="editComicsBtn">Choose Comics</button>
+    </div>
     <h1 id="header">Comics</h1>
     <div id="comicsContainer"></div>
+    <div id="comicsModal" style="display: none">
+      <div id="comicsModalContent">
+        <h2>Select Comics</h2>
+        <div id="comicsChoices"></div>
+        <button id="saveComicsChoices">Save</button>
+        <button id="closeComicsModal">Close</button>
+      </div>
+    </div>
     <script>
       const dateSelector = document.getElementById("selectedDate");
       const today = new Date();
@@ -45,6 +81,23 @@
         .split("T")[0];
       dateSelector.max = localDate;
       dateSelector.value = localDate;
+
+      const comicsData = [
+        { id: "bignate", name: "Big Nate" },
+        { id: "pearlsbeforeswine", name: "Pearls Before Swine" },
+        { id: "luann", name: "Luann" },
+        { id: "brewsterrockit", name: "Brewster Rockit" },
+        { id: "forbetterorforworse", name: "For Better or For Worse" },
+        { id: "calvinandhobbes", name: "Calvin and Hobbes" },
+        { id: "garfield", name: "Garfield" },
+        { id: "pickles", name: "Pickles" },
+        { id: "foxtrot", name: "Foxtrot" },
+        { id: "doonesbury", name: "Doonesbury" },
+        { id: "crabgrass", name: "Crabgrass" },
+        { id: "daddyshome", name: "Daddy's Home" },
+        { id: "candorville", name: "Candorville" },
+      ];
+
       showComics();
 
       function showComics() {
@@ -52,23 +105,14 @@
         if (!selectedDate) return;
         const container = document.getElementById("comicsContainer");
         container.innerHTML = "";
-        const comicsData = [
-          { id: "bignate", name: "Big Nate" },
-          { id: "pearlsbeforeswine", name: "Pearls Before Swine" },
-          { id: "luann", name: "Luann" },
-          { id: "brewsterrockit", name: "Brewster Rockit" },
-          { id: "forbetterorforworse", name: "For Better or For Worse" },
-          { id: "calvinandhobbes", name: "Calvin and Hobbes" },
-          { id: "garfield", name: "Garfield" },
-          { id: "pickles", name: "Pickles" },
-          { id: "foxtrot", name: "Foxtrot" },
-          { id: "doonesbury", name: "Doonesbury" },
-          { id: "crabgrass", name: "Crabgrass" },
-          { id: "daddyshome", name: "Daddy's Home" },
-          { id: "candorville", name: "Candorville" },
-        ];
 
         comicsData.forEach((comic) => {
+          if (
+            !JSON.parse(
+              localStorage.getItem("selectedComics") || "[]"
+            ).includes(comic.id)
+          )
+            return;
           const text = document.createElement("p");
           text.innerText = comic.name;
           text.id = comic.id;
@@ -90,6 +134,46 @@
       document
         .getElementById("selectedDate")
         .addEventListener("change", showComics);
+
+      const modal = document.getElementById("comicsModal");
+      const choicesContainer = document.getElementById("comicsChoices");
+
+      document.getElementById("editComicsBtn").addEventListener("click", () => {
+        modal.style.display = "block";
+        choicesContainer.innerHTML = "";
+        comicsData.forEach((c) => {
+          const label = document.createElement("label");
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.value = c.id;
+          const stored =
+            JSON.parse(localStorage.getItem("selectedComics")) || [];
+          checkbox.checked = stored.length ? stored.includes(c.id) : true;
+          label.appendChild(checkbox);
+          label.appendChild(document.createTextNode(c.name));
+          choicesContainer.appendChild(label);
+          choicesContainer.appendChild(document.createElement("br"));
+        });
+      });
+
+      document
+        .getElementById("saveComicsChoices")
+        .addEventListener("click", () => {
+          const selected = Array.from(
+            choicesContainer.querySelectorAll("input")
+          )
+            .filter((x) => x.checked)
+            .map((x) => x.value);
+          localStorage.setItem("selectedComics", JSON.stringify(selected));
+          if (typeof window.showComics === "function") window.showComics();
+          modal.style.display = "none";
+        });
+
+      document
+        .getElementById("closeComicsModal")
+        .addEventListener("click", () => {
+          modal.style.display = "none";
+        });
     </script>
   </body>
 </html>
