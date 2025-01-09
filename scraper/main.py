@@ -1,16 +1,15 @@
-from io import BytesIO
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
-from datetime import date
 import os
+from datetime import date, timedelta
+from io import BytesIO
+
 import requests
 from PIL import Image
-from datetime import timedelta
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
 
 chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
 
@@ -30,37 +29,41 @@ for option in options:
 driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
 
 
-def getComicAtDate(comic, comicDate):
-    if os.path.exists(
-        os.path.join("..", "comics", comic, comicDate.strftime("%Y-%m-%d"), "comic.png")
-    ):
-        print(f"{comic} for {comicDate} already exists")
-        return
-    year = comicDate.year
-    month = comicDate.month
-    day = comicDate.day
+def gocomics(comic_date, comic=None):
+    if comic is None:
+        raise ValueError("Comic name is required")
+
+    year = comic_date.year
+    month = comic_date.month
+    day = comic_date.day
     driver.get(f"https://www.gocomics.com/{comic}/{year}/{month}/{day}")
     try:
-        alertElement = driver.find_element(
-            By.CSS_SELECTOR, "div.amu-container-alert > div"
-        )
-        print(f"Comic {comic} for {comicDate} not published yet")
-        return
+        _ = driver.find_element(By.CSS_SELECTOR, "div.amu-container-alert > div")
+        print(f"Comic {comic} for {comic_date} not published yet")
+        return None
     except:
         pass
-    comicElement = driver.find_element(
+    comic_element = driver.find_element(
         By.CSS_SELECTOR, "div.comic__container > div > a > picture > img"
     )
-    comicUrl = comicElement.get_attribute("src")
-    # Create the directory if it doesn't exist
-    comic_dir = os.path.join("..", "comics", comic, comicDate.strftime("%Y-%m-%d"))
-    os.makedirs(comic_dir, exist_ok=True)
+    comic_url = comic_element.get_attribute("src")
 
     # Download the comic image
-    response = requests.get(comicUrl)
-    image = Image.open(BytesIO(response.content))
-    image.save(os.path.join(comic_dir, "comic.png"))
-    print(f"Downloaded {comic} for {comicDate}")
+    response = requests.get(comic_url)
+    return Image.open(BytesIO(response.content))
+
+
+# TODO: Allow getting previous
+def candorville(comicDate):
+    if comicDate < date.today():
+        raise ValueError("Can't get previous comics")
+    driver.get("https://www.candorville.com/candorville/")
+    comic_element = driver.find_element(
+        By.CSS_SELECTOR, "#spliced-comic > span.default-lang > picture > img"
+    )
+    comic_url = comic_element.get_attribute("src")
+    response = requests.get(comic_url)
+    return Image.open(BytesIO(response.content))
 
 
 followedComics = [
@@ -78,7 +81,36 @@ followedComics = [
     "daddyshome",
 ]
 
+
+def scrape_job(comic_name, job_func, days_past, **kwargs):
+    print(f"Scraping {comic_name} for the last {days_past} days")
+    for i in range(days_past):
+        comic_date = date.today() - timedelta(days=i)
+        image_path = os.path.join(
+            "..", "comics", comic_name, comic_date.strftime("%Y-%m-%d"), "comic.png"
+        )
+        place_holder_path = os.path.join(
+            "..", "comics", comic_name, comic_date.strftime("%Y-%m-%d"), ".placeholder"
+        )
+        os.makedirs(os.path.dirname(image_path), exist_ok=True)
+        if os.path.exists(image_path):
+            print(f"Comic {comic_name} for {comic_date} already exists")
+            continue
+        if os.path.exists(place_holder_path):
+            print(f"Comic {comic_name} for {comic_date} already not found")
+        image = job_func(comic_date, **kwargs)
+        if image is not None:
+            image.save(image_path)
+            print(f"Comic {comic_name} for {comic_date} saved")
+        else:
+            print(f"Comic {comic_name} for {comic_date} not found")
+            # Save a placeholder file if the comic is not found
+            with open(
+                os.path.join(image_path, "..", ".placeholder"), "w", encoding="utf-8"
+            ) as f:
+                f.write("")
+
+
 for comic in followedComics:
-    for i in range(8):
-        comicDate = date.today() - timedelta(days=i)
-        getComicAtDate(comic, comicDate)
+    scrape_job(comic, gocomics, 7, comic=comic)
+scrape_job("candorville", candorville, 1)
