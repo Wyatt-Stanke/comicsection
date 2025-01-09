@@ -38,8 +38,13 @@
     <div id="comicsContainer"></div>
     <script>
       const dateSelector = document.getElementById("selectedDate");
-      dateSelector.max = new Date().toISOString().split("T")[0];
-      dateSelector.value = dateSelector.max;
+      const today = new Date();
+      const timezoneOffset = today.getTimezoneOffset() * 60000;
+      const localDate = new Date(today.getTime() - timezoneOffset)
+        .toISOString()
+        .split("T")[0];
+      dateSelector.max = localDate;
+      dateSelector.value = localDate;
       showComics();
 
       function showComics() {
