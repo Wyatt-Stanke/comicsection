@@ -107,11 +107,10 @@
         container.innerHTML = "";
 
         comicsData.forEach((comic) => {
-          if (
-            !JSON.parse(
-              localStorage.getItem("selectedComics") || "[]"
-            ).includes(comic.id)
-          )
+          const selectedComics = JSON.parse(
+            localStorage.getItem("selectedComics") || "[]"
+          );
+          if (selectedComics.length > 0 && !selectedComics.includes(comic.id))
             return;
           const text = document.createElement("p");
           text.innerText = comic.name;
