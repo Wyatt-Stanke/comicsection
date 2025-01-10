@@ -70,8 +70,10 @@
   <body>
     <p id="updateText" style="display: none"></p>
     <div style="display: flex; justify-content: center; align-items: center">
+      <button id="prevDate">Previous</button>
       <input type="date" id="selectedDate" />
       <button id="editComicsBtn">Choose Comics</button>
+      <button id="nextDate">Next</button>
     </div>
     <h1 id="header">Comics</h1>
     <div id="comicsContainer"></div>
@@ -196,6 +198,27 @@
         .addEventListener("click", () => {
           modal.style.display = "none";
         });
+
+      const prevDateBtn = document.getElementById("prevDate");
+      const nextDateBtn = document.getElementById("nextDate");
+      // TODO: Remove hardcoded date
+      const earliestDate = new Date("2024-12-28");
+
+      nextDateBtn.disabled = dateSelector.value === localDate;
+      prevDateBtn.disabled = new Date(dateSelector.value) <= earliestDate;
+
+      function shiftDate(offset) {
+        const current = new Date(dateSelector.value);
+        current.setDate(current.getDate() + offset);
+        dateSelector.value = current.toISOString().split("T")[0];
+        showComics();
+
+        nextDateBtn.disabled = dateSelector.value === localDate;
+        prevDateBtn.disabled = new Date(dateSelector.value) <= earliestDate;
+      }
+
+      prevDateBtn.addEventListener("click", () => shiftDate(-1));
+      nextDateBtn.addEventListener("click", () => shiftDate(1));
     </script>
   </body>
 </html>
