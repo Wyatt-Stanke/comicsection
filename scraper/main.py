@@ -6,12 +6,7 @@ import requests
 from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
-
-chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
 
 chrome_options = Options()
 options = [
@@ -26,7 +21,7 @@ options = [
 for option in options:
     chrome_options.add_argument(option)
 
-driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
+driver = webdriver.Chrome(options=chrome_options)
 
 
 def gocomics(comic_date, comic=None):
