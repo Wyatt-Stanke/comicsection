@@ -1,5 +1,5 @@
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from io import BytesIO
 
 import requests
@@ -10,7 +10,6 @@ from selenium.webdriver.common.by import By
 
 chrome_options = Options()
 options = [
-    "--headless=new",
     "--disable-gpu",
     "--window-size=1920,1200",
     "--ignore-certificate-errors",
@@ -18,10 +17,34 @@ options = [
     "--no-sandbox",
     "--disable-dev-shm-usage",
 ]
+
+if os.getenv("DEBUG"):
+    options.insert(0, "--headless=new")
+
+if os.path.exists("./extras/ublock_origin.crx"):
+    print("Using cached adblocker")
+    chrome_options.add_extension("./extras/ublock_origin.crx")
+
 for option in options:
     chrome_options.add_argument(option)
 
+# Gives a speedup by not waiting for the full page to load
+chrome_options.page_load_strategy = "eager"
+
 driver = webdriver.Chrome(options=chrome_options)
+
+current_chrome_version = driver.capabilities["browserVersion"]
+os.makedirs("extras", exist_ok=True)
+with open("extras/chrome_version.txt", "w+") as f:
+    read_chrome_version = f.read()
+    read_chrome_version = read_chrome_version.strip() if read_chrome_version else None
+    if read_chrome_version != current_chrome_version:
+        f.write(current_chrome_version)
+        url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodversion={current_chrome_version}&acceptformat=crx2,crx3&x=id%3Dcjpalhdlnbpafiamejdnhcphjbkeiagm%26uc"
+        print(f"Chrome version updated, redownloading adblocker from {url}")
+        response = requests.get(url)
+        with open("extras/ublock_origin.crx", "wb") as f:
+            f.write(response.content)
 
 
 def gocomics(comic_date, comic=None):
@@ -35,7 +58,7 @@ def gocomics(comic_date, comic=None):
     try:
         _ = driver.find_element(By.CSS_SELECTOR, "div.amu-container-alert > div")
         print(f"Comic {comic} for {comic_date} not published yet")
-        return None
+        return None, date(year, month, day)
     except:
         pass
     comic_element = driver.find_element(
@@ -45,7 +68,7 @@ def gocomics(comic_date, comic=None):
 
     # Download the comic image
     response = requests.get(comic_url)
-    return Image.open(BytesIO(response.content))
+    return Image.open(BytesIO(response.content)), datetime(year, month, day)
 
 
 # TODO: Allow getting previous
@@ -57,8 +80,14 @@ def candorville(comicDate):
         By.CSS_SELECTOR, "#spliced-comic > span.default-lang > picture > img"
     )
     comic_url = comic_element.get_attribute("src")
+    comic_date_element = driver.find_element(
+        By.CSS_SELECTOR, "#dbp-content-wrapper > header > div.comic-date.right"
+    )
+    comic_date_text = comic_date_element.text.strip()
+    comic_date = datetime.strptime(comic_date_text, "%m/%d/%Y")
+
     response = requests.get(comic_url)
-    return Image.open(BytesIO(response.content))
+    return Image.open(BytesIO(response.content)), comic_date
 
 
 followedComics = [
@@ -93,16 +122,24 @@ def scrape_job(comic_name, job_func, days_past, **kwargs):
             continue
         if os.path.exists(place_holder_path):
             print(f"Comic {comic_name} for {comic_date} already not found")
-        image = job_func(comic_date, **kwargs)
-        if image is not None:
-            image.save(image_path)
-            print(f"Comic {comic_name} for {comic_date} saved")
-        else:
-            print(f"Comic {comic_name} for {comic_date} not found")
-            if comic_date < date.today() - timedelta(days=3):
-                # Save a placeholder file if the comic is not found
-                with open(place_holder_path, "w+", encoding="utf-8") as f:
-                    f.write("")
+            continue
+        try:
+            image, actual_date = job_func(comic_date, **kwargs)
+            print(comic_date, actual_date)
+            if datetime.combine(comic_date, time()) < actual_date:
+                print(f"Comic {comic_name} for {comic_date} not published yet")
+                continue
+            if image is not None:
+                image.save(image_path)
+                print(f"Comic {comic_name} for {comic_date} saved")
+            else:
+                print(f"Comic {comic_name} for {comic_date} not found")
+                if comic_date < date.today() - timedelta(days=3):
+                    # Save a placeholder file if the comic is not found
+                    with open(place_holder_path, "w+", encoding="utf-8") as f:
+                        f.write("")
+        except Exception as e:
+            print(f"Failed to scrape {comic_name} for {comic_date}: {e}")
 
 
 for comic in followedComics:
