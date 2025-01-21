@@ -18,7 +18,7 @@ options = [
     "--disable-dev-shm-usage",
 ]
 
-if os.getenv("DEBUG"):
+if not os.getenv("DEBUG"):
     options.insert(0, "--headless=new")
 
 if os.path.exists("./extras/ublock_origin.crx"):
