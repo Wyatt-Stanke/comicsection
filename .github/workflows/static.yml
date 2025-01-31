@@ -74,6 +74,7 @@ jobs:
 
       - name: Build
         run: |
+          npm i parcel @parcel/transformer-webmanifest
           npx parcel build index.html
           mv comics dist/
       - name: Upload artifact
