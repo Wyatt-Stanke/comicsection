@@ -71,25 +71,6 @@ def gocomics(comic_date, comic=None):
     return Image.open(BytesIO(response.content)), datetime(year, month, day)
 
 
-# TODO: Allow getting previous
-def candorville(comicDate):
-    if comicDate < date.today():
-        raise ValueError("Can't get previous comics")
-    driver.get("https://www.candorville.com/candorville/")
-    comic_element = driver.find_element(
-        By.CSS_SELECTOR, "#spliced-comic > span.default-lang > picture > img"
-    )
-    comic_url = comic_element.get_attribute("src")
-    comic_date_element = driver.find_element(
-        By.CSS_SELECTOR, "#dbp-content-wrapper > header > div.comic-date.right"
-    )
-    comic_date_text = comic_date_element.text.strip()
-    comic_date = datetime.strptime(comic_date_text, "%m/%d/%Y")
-
-    response = requests.get(comic_url)
-    return Image.open(BytesIO(response.content)), comic_date
-
-
 followedComics = [
     "bignate",
     "pearlsbeforeswine",
@@ -144,4 +125,3 @@ def scrape_job(comic_name, job_func, days_past, **kwargs):
 
 for comic in followedComics:
     scrape_job(comic, gocomics, 7, comic=comic)
-scrape_job("candorville", candorville, 1)
