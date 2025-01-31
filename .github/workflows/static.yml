@@ -33,6 +33,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "18"
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Replace update time in index.html
@@ -68,6 +72,10 @@ jobs:
               fs.readFileSync("index.html", "utf-8").replace("<!--Preload-->", preload)
             );
 
+      - name: Build
+        run: |
+          npx parcel build index.html
+          mv comics dist/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
