@@ -60,14 +60,14 @@ jobs:
             const today = new Date().toISOString().split("T")[0];
             const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
             // For each folder in the comics/ directory...
-            for (const folder of fs.readdirSync("comics")) {
+            for (const folder of fs.readdirSync("dist/comics")) {
               // If {today}/comic.webp exists, add a <link rel="preload"> tag for it
-              if (fs.existsSync(`comics/${folder}/${today}/comic.webp`)) {
+              if (fs.existsSync(`dist/comics/${folder}/${today}/comic.webp`)) {
                 preload += `<link rel="preload" href="./comics/${folder}/${today}/comic.webp" as="image" type="image/webp">\n`;
                 continue;
               }
               // If {yesterday}/comic.webp exists, add a <link rel="preload"> tag for it
-              if (fs.existsSync(`comics/${folder}/${yesterday}/comic.webp`)) {
+              if (fs.existsSync(`dist/comics/${folder}/${yesterday}/comic.webp`)) {
                 preload += `<link rel="preload" href="./comics/${folder}/${yesterday}/comic.webp" as="image" type="image/webp">\n`;
               }
             }
