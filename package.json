@@ -1,7 +1,7 @@
 {
   "name": "comicsection",
   "scripts": {
-    "build": "parcel build index.html"
+    "build": "PARCEL_WORKERS=0 parcel build index.html"
   },
   "devDependencies": {
     "@parcel/packager-raw-url": "^2.13.3",
