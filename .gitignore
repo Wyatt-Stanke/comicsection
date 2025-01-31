@@ -1,0 +1,4 @@
+.mypy_cache
+dist
+node_modules
+.parcel-cache
