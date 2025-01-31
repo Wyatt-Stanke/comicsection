@@ -44,6 +44,11 @@ jobs:
           current_time=$(date +%s)
           date_js="new Date(${current_time}000)"
           sed -i 's|/\*lastUpdated\*/ null|'"$date_js"'|g' index.html
+      - name: Build
+        run: |
+          npm install
+          npm run build
+          mv comics dist/
       - uses: actions/github-script@v7
         with:
           script: |
@@ -68,20 +73,14 @@ jobs:
             }
             // Write the <link rel="preload"> tags to index.html
             fs.writeFileSync(
-              "index.html",
-              fs.readFileSync("index.html", "utf-8").replace("<!--Preload-->", preload)
+              "dist/index.html",
+              fs.readFileSync("dist/index.html", "utf-8").replace("<!--Preload-->", preload)
             );
-
-      - name: Build
-        run: |
-          npm install
-          npm run build
-          mv comics dist/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: "."
+          # Upload the dist/ directory
+          path: "dist"
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
