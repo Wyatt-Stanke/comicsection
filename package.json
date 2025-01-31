@@ -1,7 +1,7 @@
 {
   "name": "comicsection",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "parcel build index.html"
   },
   "devDependencies": {
     "@parcel/packager-raw-url": "^2.13.3",
