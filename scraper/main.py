@@ -1,6 +1,7 @@
 import os
 from datetime import date, datetime, time, timedelta
 from io import BytesIO
+import traceback
 
 import requests
 from PIL import Image
@@ -56,9 +57,13 @@ def gocomics(comic_date, comic=None):
     day = comic_date.day
     driver.get(f"https://www.gocomics.com/{comic}/{year}/{month}/{day}")
     try:
-        _ = driver.find_element(By.CSS_SELECTOR, "div.amu-container-alert > div")
+        # TODO: Match text to see if the comic is not published yet
+        _ = driver.find_element(
+            By.CSS_SELECTOR,
+            "div.amu-container-alert > div.gc-alert--warning",
+        )
         print(f"Comic {comic} for {comic_date} not published yet")
-        return None, date(year, month, day)
+        return None, datetime(year, month, day)
     except:
         pass
     comic_element = driver.find_element(
@@ -121,6 +126,8 @@ def scrape_job(comic_name, job_func, days_past, **kwargs):
                         f.write("")
         except Exception as e:
             print(f"Failed to scrape {comic_name} for {comic_date}: {e}")
+
+            traceback.print_exc()
 
 
 for comic in followedComics:
