@@ -58,6 +58,7 @@ def gocomics(comic_date, comic=None):
     driver.get(f"https://www.gocomics.com/{comic}/{year}/{month}/{day}")
     try:
         # TODO: Match text to see if the comic is not published yet
+        # TODO: I can't do this anymore with this goddamn site
         _ = driver.find_element(
             By.CSS_SELECTOR,
             "div.amu-container-alert > div.gc-alert--warning",
@@ -66,9 +67,10 @@ def gocomics(comic_date, comic=None):
         return None, datetime(year, month, day)
     except:
         pass
-    comic_element = driver.find_element(
-        By.CSS_SELECTOR, "div.comic__container > div > a > picture > img"
-    )
+    comic_element = driver.find_elements(
+        By.CSS_SELECTOR,
+        "div > button > img",
+    )[0]
     comic_url = comic_element.get_attribute("src")
 
     # Download the comic image
