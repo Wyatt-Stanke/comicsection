@@ -357,6 +357,14 @@
       prevDateBtn.disabled = new Date(dateSelector.value) <= earliestDate;
 
       function shiftDate(offset) {
+        if (
+          (offset < 0 && new Date(dateSelector.value) <= earliestDate) ||
+          (offset > 0 && dateSelector.value === formatDate(currentDate))
+        ) {
+          console.log("Cannot shift date, already at limit");
+          return;
+        }
+
         const current = new Date(dateSelector.value);
         current.setDate(current.getDate() + offset);
         dateSelector.value = current.toISOString().split("T")[0];
@@ -369,6 +377,74 @@
 
       prevDateBtn.addEventListener("click", () => shiftDate(-1));
       nextDateBtn.addEventListener("click", () => shiftDate(1));
+
+      // Check for swipe gestures when in landscape mode
+      if (isMobile) {
+        console.log("Adding touch event listeners for swipe gestures");
+        document.addEventListener("touchstart", handleTouchStart, false);
+        document.addEventListener("touchend", handleTouchEnd, false);
+      }
+
+      let xDown = null;
+      let yDown = null;
+      function handleTouchStart(evt) {
+        console.log("Touch start detected");
+        const firstTouch = evt.touches[0];
+        xDown = firstTouch.clientX;
+        yDown = firstTouch.clientY;
+      }
+
+      function handleTouchEnd(evt) {
+        console.log("Touch end detected");
+        if (!xDown || !yDown) {
+          console.log("Touch coordinates not set, ignoring touch end");
+          return;
+        }
+
+        const xUp = evt.changedTouches[0].clientX;
+        const yUp = evt.changedTouches[0].clientY;
+
+        const xDiff = xDown - xUp;
+        const yDiff = yDown - yUp;
+
+        const totalDistance = Math.sqrt(xDiff * xDiff + yDiff * yDiff);
+
+        if (totalDistance < 40 || Math.abs(xDiff) < 30) {
+          console.log("Swipe distance too small, ignoring swipe");
+          xDown = null;
+          yDown = null;
+          return; // Ignore small swipes
+        }
+
+        if (Math.abs(xDiff) > Math.abs(yDiff)) {
+          // Horizontal swipe
+          if (xDiff > 0) {
+            // Left swipe
+            console.log("Left swipe detected");
+            if (isFullscreen) {
+              fullscreenCurrentComicIndex =
+                (fullscreenCurrentComicIndex + 1) % comicsData.length;
+              showComics();
+            } else {
+              shiftDate(1);
+            }
+          } else {
+            // Right swipe
+            console.log("Right swipe detected");
+            if (isFullscreen) {
+              fullscreenCurrentComicIndex =
+                (fullscreenCurrentComicIndex - 1 + comicsData.length) %
+                comicsData.length;
+              showComics();
+            } else {
+              shiftDate(-1);
+            }
+          }
+        }
+
+        xDown = null;
+        yDown = null;
+      }
     </script>
   </body>
 </html>
