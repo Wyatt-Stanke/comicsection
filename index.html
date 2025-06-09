@@ -67,55 +67,54 @@
       top: 10px;
       right: 10px;
     }
+
+    #fullscreenModeContainer {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #f0f0f0;
+      overflow-x: auto;
+    }
   </style>
   <body>
-    <p id="updateText" style="display: none"></p>
-    <div style="display: flex; justify-content: center; align-items: center">
-      <button id="prevDate">Previous</button>
-      <input type="date" id="selectedDate" />
-      <button id="editComicsBtn">Choose Comics</button>
-      <button id="nextDate">Next</button>
-    </div>
-    <h1 id="header">Comics</h1>
-    <div id="comicsContainer"></div>
-    <div id="comicsModal" style="display: none">
-      <div id="comicsModalContent">
-        <h2>Select Comics</h2>
-        <div id="comicsChoices"></div>
-        <button id="saveComicsChoices">Save</button>
-        <button id="closeComicsModal">Close</button>
+    <div id="scrollModeContainer" style="display: none">
+      <p id="updateText" style="display: none"></p>
+      <div style="display: flex; justify-content: center; align-items: center">
+        <button id="prevDate">Previous</button>
+        <input type="date" id="selectedDate" />
+        <button id="editComicsBtn">Choose Comics</button>
+        <button id="nextDate">Next</button>
+      </div>
+      <h1 id="header">Comics</h1>
+      <div id="comicsContainer"></div>
+      <div id="comicsModal" style="display: none">
+        <div id="comicsModalContent">
+          <h2>Select Comics</h2>
+          <div id="comicsChoices"></div>
+          <button id="saveComicsChoices">Save</button>
+          <button id="closeComicsModal">Close</button>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 10px">
+        <a
+          href="https://github.com/Wyatt-Stanke/comicsection"
+          style="text-decoration: none"
+        >
+          <img
+            src="https://img.shields.io/badge/source_code-on_GitHub-black"
+            alt="GitHub Repository"
+          />
+        </a>
       </div>
     </div>
-    <div style="text-align: center; margin-top: 10px">
-      <a
-        href="https://github.com/Wyatt-Stanke/comicsection"
-        style="text-decoration: none"
-      >
-        <img
-          src="https://img.shields.io/badge/source_code-on_GitHub-black"
-          alt="GitHub Repository"
-        />
-      </a>
+
+    <div id="fullscreenModeContainer" style="display: none">
+      <div id="comicsContainerFullscreen"></div>
     </div>
     <script>
-      // Will be substituted at build time.
-      const lastUpdated = /*lastUpdated*/ null;
-
-      const updateText = document.getElementById("updateText");
-      if (lastUpdated) {
-        updateText.style.display = "block";
-        updateText.innerText = `Last updated: ${lastUpdated.toLocaleString()}`;
-      }
-
-      const dateSelector = document.getElementById("selectedDate");
-      const today = new Date();
-      const timezoneOffset = today.getTimezoneOffset() * 60000;
-      const localDate = new Date(today.getTime() - timezoneOffset)
-        .toISOString()
-        .split("T")[0];
-      dateSelector.max = localDate;
-      dateSelector.value = localDate;
-
       const comicsData = [
         { id: "bignate", name: "Big Nate" },
         { id: "pearlsbeforeswine", name: "Pearls Before Swine" },
@@ -131,29 +130,142 @@
         { id: "daddyshome", name: "Daddy's Home" },
       ];
 
+      const today = new Date();
+      const timezoneOffset = today.getTimezoneOffset() * 60000;
+      let currentDate = new Date(today.getTime() - timezoneOffset);
+
+      function formatDate(date) {
+        return date.toISOString().split("T")[0];
+      }
+
+      const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+      // Will be substituted at build time.
+      const lastUpdated = /*lastUpdated*/ null;
+
+      // Fullscreen mode variables
+      let isFullscreen = false;
+      let fullscreenCurrentComicIndex = null;
+
+      function checkFullscreenMode() {
+        if (screen.orientation.type.startsWith("landscape") && isMobile) {
+          console.log("Entering fullscreen mode");
+          document.getElementById("scrollModeContainer").style.display = "none";
+          document.getElementById("fullscreenModeContainer").style.display =
+            "block";
+          isFullscreen = true;
+          fullscreenCurrentComicIndex = 0;
+        } else {
+          console.log("Exiting fullscreen mode");
+          document.getElementById("scrollModeContainer").style.display =
+            "block";
+          document.getElementById("fullscreenModeContainer").style.display =
+            "none";
+          isFullscreen = false;
+          fullscreenCurrentComicIndex = null;
+        }
+
+        showComics();
+      }
+
+      screen.orientation.addEventListener("change", checkFullscreenMode);
+      checkFullscreenMode();
+
+      const updateText = document.getElementById("updateText");
+      if (lastUpdated) {
+        updateText.style.display = "block";
+        updateText.innerText = `Last updated: ${lastUpdated.toLocaleString()}`;
+      }
+
+      const dateSelector = document.getElementById("selectedDate");
+      dateSelector.max = formatDate(currentDate);
+      dateSelector.value = formatDate(currentDate);
+
       showComics();
 
       function showComics() {
-        const selectedDate = document.getElementById("selectedDate").value;
-        if (!selectedDate) return;
-        const container = document.getElementById("comicsContainer");
+        const container = document.getElementById(
+          isFullscreen ? "comicsContainerFullscreen" : "comicsContainer"
+        );
         container.innerHTML = "";
+        const selectedComics = JSON.parse(
+          localStorage.getItem("selectedComics") || "[]"
+        );
+
         const fragment = new DocumentFragment();
 
-        comicsData.forEach((comic) => {
-          const selectedComics = JSON.parse(
-            localStorage.getItem("selectedComics") || "[]"
-          );
-          if (selectedComics.length > 0 && !selectedComics.includes(comic.id))
+        if (isFullscreen) {
+          console.log("Showing comics in fullscreen mode");
+          if (fullscreenCurrentComicIndex === null) {
+            fullscreenCurrentComicIndex = 0;
+          }
+          let comic = comicsData[fullscreenCurrentComicIndex];
+          if (!comic) {
+            console.error("No comic found for the current index.");
             return;
+          }
+
+          // Text on top left
           const text = document.createElement("p");
           text.innerText = comic.name;
           text.id = comic.id;
           text.style.fontSize = "3vw";
+          text.style.margin = "0 auto";
+          text.style.textAlign = "left";
+          text.style.marginLeft = "25px";
+          text.style.marginBottom = "10px";
+
+          // Date selctor on top right
+          const dateSelector = document.createElement("input");
+          dateSelector.type = "date";
+          dateSelector.value = formatDate(currentDate);
+          dateSelector.style.position = "absolute";
+          dateSelector.style.top = "10px";
+          dateSelector.style.right = "20px";
+          dateSelector.style.fontSize = "2vw";
+          dateSelector.addEventListener("change", (event) => {
+            currentDate = new Date(event.target.value);
+            showComics();
+          });
+
           fragment.appendChild(text);
+          fragment.appendChild(dateSelector);
+
+          // Comic select buttons on bottom
+          const prevBtn = document.createElement("button");
+          prevBtn.innerText = "<";
+          prevBtn.style.position = "fixed";
+          prevBtn.style.bottom = "5px";
+          prevBtn.style.left = "20px";
+          prevBtn.style.fontSize = "2vw";
+
+          prevBtn.addEventListener("click", () => {
+            fullscreenCurrentComicIndex =
+              (fullscreenCurrentComicIndex - 1 + comicsData.length) %
+              comicsData.length;
+            showComics();
+          });
+
+          const nextBtn = document.createElement("button");
+          nextBtn.innerText = ">";
+          nextBtn.style.position = "fixed";
+          nextBtn.style.bottom = "5px";
+          nextBtn.style.right = "20px";
+          nextBtn.style.fontSize = "2vw";
+          nextBtn.addEventListener("click", () => {
+            fullscreenCurrentComicIndex =
+              (fullscreenCurrentComicIndex + 1) % comicsData.length;
+            showComics();
+          });
+
+          fragment.appendChild(prevBtn);
+          fragment.appendChild(nextBtn);
+
           const img = document.createElement("img");
-          img.src = `./comics/${comic.id}/${selectedDate}/comic.webp`;
-          img.style.width = "100%";
+          img.src = `./comics/${comic.id}/${formatDate(
+            currentDate
+          )}/comic.webp`;
+          img.style.width = "95%";
           img.onerror = (event) => {
             event.target.style.display = "none";
             const text = document.getElementById(comic.id);
@@ -161,14 +273,40 @@
               " <span style='color: gray'>(Not available)</span> ";
           };
           fragment.appendChild(img);
-        });
+        } else {
+          console.log("Showing comics in scroll mode");
+          comicsData.forEach((comic) => {
+            if (selectedComics.length > 0 && !selectedComics.includes(comic.id))
+              return;
+            const text = document.createElement("p");
+            text.innerText = comic.name;
+            text.id = comic.id;
+            text.style.fontSize = "3vw";
+            fragment.appendChild(text);
+            const img = document.createElement("img");
+            img.src = `./comics/${comic.id}/${formatDate(
+              currentDate
+            )}/comic.webp`;
+            img.style.width = "100%";
+            img.onerror = (event) => {
+              event.target.style.display = "none";
+              const text = document.getElementById(comic.id);
+              text.innerHTML +=
+                " <span style='color: gray'>(Not available)</span> ";
+            };
+            fragment.appendChild(img);
+          });
+        }
 
         container.appendChild(fragment);
       }
 
       document
         .getElementById("selectedDate")
-        .addEventListener("change", showComics);
+        .addEventListener("change", (event) => {
+          currentDate = new Date(event.target.value);
+          showComics();
+        });
 
       const modal = document.getElementById("comicsModal");
       const choicesContainer = document.getElementById("comicsChoices");
@@ -215,16 +353,17 @@
       // TODO: Remove hardcoded date
       const earliestDate = new Date("2024-12-28");
 
-      nextDateBtn.disabled = dateSelector.value === localDate;
+      nextDateBtn.disabled = dateSelector.value === formatDate(currentDate);
       prevDateBtn.disabled = new Date(dateSelector.value) <= earliestDate;
 
       function shiftDate(offset) {
         const current = new Date(dateSelector.value);
         current.setDate(current.getDate() + offset);
         dateSelector.value = current.toISOString().split("T")[0];
+        currentDate = new Date(current.getTime() - timezoneOffset);
         showComics();
 
-        nextDateBtn.disabled = dateSelector.value === localDate;
+        nextDateBtn.disabled = dateSelector.value === formatDate(currentDate);
         prevDateBtn.disabled = new Date(dateSelector.value) <= earliestDate;
       }
 
