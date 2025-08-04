@@ -30,7 +30,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    timetimeout-minutes: 10
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
