@@ -43,7 +43,7 @@ jobs:
           date_js="new Date(${current_time}000)"
           sed -i 's|/\*lastUpdated\*/ null|'"$date_js"'|g' index.html
 
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v8
         with:
           script: |
             let preload = "";
