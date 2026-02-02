@@ -1,0 +1,11 @@
+version = 1
+
+[merge.message]
+title = "pull_request_title"
+body = "pull_request_body"
+include_pr_number = true
+strip_html_comments = true
+
+[merge]
+blocking_title_regex = "^\\[WIP*"
+method = "squash"
