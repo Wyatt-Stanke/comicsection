@@ -53,7 +53,7 @@ def build_gocomics_url(comic: str, comic_date: date) -> str:
 
 
 def is_valid_comic_name(comic_name: str) -> bool:
-    """Check if a comic name is valid (non-empty, alphanumeric with no spaces).
+    """Check if a comic name is valid (non-empty, alphanumeric with optional hyphens).
 
     Args:
         comic_name: The comic name to validate
@@ -61,6 +61,6 @@ def is_valid_comic_name(comic_name: str) -> bool:
     Returns:
         True if valid, False otherwise
     """
-    if not comic_name:
+    if not comic_name or not isinstance(comic_name, str):
         return False
-    return comic_name.isalnum() or all(c.isalnum() or c == '-' for c in comic_name)
+    return all(c.isalnum() or c == '-' for c in comic_name)
