@@ -46,14 +46,14 @@ def build_gocomics_url(comic: str, comic_date: date) -> str:
     Returns:
         The full GoComics URL
     """
-    year = comic_date.year
-    month = comic_date.month
-    day = comic_date.day
-    return f"https://www.gocomics.com/{comic}/{year}/{month}/{day}"
+    return (
+        f"https://www.gocomics.com/"
+        f"{comic}/{comic_date.year}/{comic_date.month}/{comic_date.day}"
+    )
 
 
 def is_valid_comic_name(comic_name: str) -> bool:
-    """Check if a comic name is valid (non-empty, alphanumeric with optional hyphens).
+    """Check if a comic name is valid (non-empty, ASCII alphanumeric with optional hyphens).
 
     Args:
         comic_name: The comic name to validate
@@ -63,4 +63,4 @@ def is_valid_comic_name(comic_name: str) -> bool:
     """
     if not comic_name or not isinstance(comic_name, str):
         return False
-    return all(c.isalnum() or c == '-' for c in comic_name)
+    return all(c.isascii() and (c.isalnum() or c == '-') for c in comic_name)

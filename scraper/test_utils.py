@@ -97,13 +97,29 @@ class TestIsValidComicName:
         assert is_valid_comic_name("") is False
 
     def test_none_name(self):
-        """Test that None names are invalid."""
-        assert is_valid_comic_name(None) is False
+        """Test that None names are invalid (returns False, not exception)."""
+        result = is_valid_comic_name(None)
+        assert result is False
 
     def test_name_with_numbers(self):
         """Test valid names with numbers."""
         assert is_valid_comic_name("comic123") is True
         assert is_valid_comic_name("123comic") is True
+
+    def test_invalid_input_types(self):
+        """Test that non-string types are invalid."""
+        assert is_valid_comic_name(123) is False
+        assert is_valid_comic_name([]) is False
+        assert is_valid_comic_name(True) is False
+        assert is_valid_comic_name({}) is False
+
+    def test_invalid_characters(self):
+        """Test that URL-unsafe and special characters are rejected."""
+        assert is_valid_comic_name("comic with spaces") is False
+        assert is_valid_comic_name("comic@special") is False
+        assert is_valid_comic_name("comic/with/slash") is False
+        assert is_valid_comic_name("comic.with.dot") is False
+        assert is_valid_comic_name("comic%with%percent") is False
 
 
 if __name__ == "__main__":

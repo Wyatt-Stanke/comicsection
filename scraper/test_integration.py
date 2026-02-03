@@ -90,16 +90,14 @@ class TestImageDownloadIntegration:
 
     def test_can_parse_image_from_bytes(self):
         """Test that PIL can parse image data from bytes (offline test)."""
-        # Create a simple 1x1 PNG image in memory
-        from PIL import Image as PILImage
-
-        img = PILImage.new('RGB', (10, 10), color='red')
+        # Create a simple PNG image in memory
+        img = Image.new('RGB', (10, 10), color='red')
         buffer = BytesIO()
         img.save(buffer, format='PNG')
         buffer.seek(0)
 
         # Parse it back
-        parsed = PILImage.open(buffer)
+        parsed = Image.open(buffer)
         assert parsed.size == (10, 10)
 
 
@@ -251,8 +249,7 @@ class TestEndToEndScenarios:
         assert os.path.exists(os.path.dirname(image_path))
 
         # Step 5: Simulate saving an image
-        from PIL import Image as PILImage
-        img = PILImage.new('RGB', (100, 100), color='white')
+        img = Image.new('RGB', (100, 100), color='white')
         img.save(image_path.replace('.webp', '.png'), format='PNG')
         assert os.path.exists(image_path.replace('.webp', '.png'))
 
