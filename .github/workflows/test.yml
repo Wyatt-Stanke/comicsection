@@ -1,0 +1,45 @@
+name: Test
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: ./scraper
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run tests
+        working-directory: ./scraper
+        run: |
+          python -m pytest test_utils.py -v
+
+  lint-html:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Validate HTML
+        run: |
+          # Check that index.html exists and is valid
+          test -f index.html
+          # Basic HTML structure validation
+          grep -q '<!DOCTYPE html>' index.html
+          grep -q '<html>' index.html
+          grep -q '</html>' index.html
