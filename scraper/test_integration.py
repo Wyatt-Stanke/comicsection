@@ -92,10 +92,9 @@ class TestImageDownloadIntegration:
         """Test that PIL can parse image data from bytes (offline test)."""
         # Create a simple 1x1 PNG image in memory
         from PIL import Image as PILImage
-        import io
 
         img = PILImage.new('RGB', (10, 10), color='red')
-        buffer = io.BytesIO()
+        buffer = BytesIO()
         img.save(buffer, format='PNG')
         buffer.seek(0)
 
