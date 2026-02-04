@@ -9,6 +9,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
+from utils import build_gocomics_url, get_image_path, get_placeholder_path
+
 chrome_options = Options()
 options = [
     "--disable-gpu",
@@ -55,7 +57,7 @@ def gocomics(comic_date, comic=None):
     year = comic_date.year
     month = comic_date.month
     day = comic_date.day
-    driver.get(f"https://www.gocomics.com/{comic}/{year}/{month}/{day}")
+    driver.get(build_gocomics_url(comic, comic_date))
     try:
         # TODO: Match text to see if the comic is not published yet
         # TODO: I can't do this anymore with this goddamn site
@@ -98,12 +100,8 @@ def scrape_job(comic_name, job_func, days_past, **kwargs):
     print(f"Scraping {comic_name} for the last {days_past} days")
     for i in range(days_past):
         comic_date = date.today() - timedelta(days=i)
-        image_path = os.path.join(
-            "..", "comics", comic_name, comic_date.strftime("%Y-%m-%d"), "comic.webp"
-        )
-        place_holder_path = os.path.join(
-            "..", "comics", comic_name, comic_date.strftime("%Y-%m-%d"), ".placeholder"
-        )
+        image_path = get_image_path(comic_name, comic_date)
+        place_holder_path = get_placeholder_path(comic_name, comic_date)
         os.makedirs(os.path.dirname(image_path), exist_ok=True)
         if os.path.exists(image_path):
             print(f"Comic {comic_name} for {comic_date} already exists")
