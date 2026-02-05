@@ -71,7 +71,7 @@ jobs:
               fs.readFileSync("index.html", "utf-8").replace("<!--Preload-->", preload)
             );
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           # Upload the directory
           path: "."
