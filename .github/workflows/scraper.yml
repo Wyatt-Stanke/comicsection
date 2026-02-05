@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - name: Check out repo
         uses: actions/checkout@v6
@@ -27,12 +28,28 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Commit changes
+      - name: Check for changes
+        id: changes
         run: |
           git add .
-          git commit -m "Scraper results" || echo "No changes to commit"
+          if git diff --staged --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Push changes
-        run: git push
+      - name: Create branch, commit, and open PR
+        if: steps.changes.outputs.has_changes == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="scraper/update-${{ github.run_id }}-${{ github.run_attempt }}"
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M UTC")
+          git checkout -b "$BRANCH_NAME"
+          git commit -m "Scraper results"
+          git push origin "$BRANCH_NAME"
+          gh pr create \
+            --title "Scraper results ($TIMESTAMP)" \
+            --body "Automated update from scraper workflow run #${{ github.run_id }}" \
+            --label "automerge" \
+            --label "scraper"
