@@ -24,7 +24,7 @@ jobs:
 
       - name: Set up Python
         if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 

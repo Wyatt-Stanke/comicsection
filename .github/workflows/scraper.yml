@@ -15,7 +15,7 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
       - uses: browser-actions/setup-chrome@v2
       - name: Run scraper
         working-directory: ./scraper
