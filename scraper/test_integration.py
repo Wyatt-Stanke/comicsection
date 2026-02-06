@@ -37,10 +37,9 @@ def request_with_backoff(
         The response object
 
     Raises:
-        requests.exceptions.HTTPError: If all retries are exhausted
+        requests.exceptions.HTTPError: If all retries are exhausted for 403 errors
+        requests.exceptions.RequestException: For other request failures after max retries
     """
-    last_exception = None
-
     for attempt in range(max_retries + 1):
         try:
             response = requests.get(url, timeout=timeout)
@@ -51,18 +50,15 @@ def request_with_backoff(
                     continue
                 response.raise_for_status()
             return response
-        except requests.exceptions.RequestException as e:
-            last_exception = e
+        except requests.exceptions.RequestException:
             if attempt < max_retries:
                 delay = base_delay * (2 ** attempt)
                 time.sleep(delay)
             else:
                 raise
 
-    # This should not be reached, but just in case
-    raise last_exception if last_exception else requests.exceptions.HTTPError(
-        "Max retries exceeded"
-    )
+    # This line should never be reached since the loop always either returns or raises
+    raise requests.exceptions.HTTPError("Max retries exceeded")
 
 
 def network_available():
