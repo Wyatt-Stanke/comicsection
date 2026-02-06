@@ -3,3 +3,4 @@ webdriver_manager==4.0.2
 pillow==12.1.0
 pytest==8.3.4
 requests==2.32.5
+requests-mock==1.12.1

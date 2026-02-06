@@ -8,6 +8,7 @@ be skipped in environments without internet connectivity.
 """
 
 import os
+import time
 from datetime import date, timedelta
 from io import BytesIO
 
@@ -18,12 +19,58 @@ from PIL import Image
 from utils import build_gocomics_url, get_image_path, is_valid_comic_name
 
 
+def request_with_backoff(
+    url: str,
+    timeout: int = 30,
+    max_retries: int = 5,
+    base_delay: float = 1.0,
+) -> requests.Response:
+    """Make an HTTP GET request with exponential backoff for 403 errors.
+
+    Args:
+        url: The URL to request
+        timeout: Request timeout in seconds
+        max_retries: Maximum number of retry attempts
+        base_delay: Base delay in seconds (doubles with each retry)
+
+    Returns:
+        The response object
+
+    Raises:
+        requests.exceptions.HTTPError: If all retries are exhausted
+    """
+    last_exception = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            response = requests.get(url, timeout=timeout)
+            if response.status_code == 403:
+                if attempt < max_retries:
+                    delay = base_delay * (2 ** attempt)
+                    time.sleep(delay)
+                    continue
+                response.raise_for_status()
+            return response
+        except requests.exceptions.RequestException as e:
+            last_exception = e
+            if attempt < max_retries:
+                delay = base_delay * (2 ** attempt)
+                time.sleep(delay)
+            else:
+                raise
+
+    # This should not be reached, but just in case
+    raise last_exception if last_exception else requests.exceptions.HTTPError(
+        "Max retries exceeded"
+    )
+
+
 def network_available():
     """Check if network is available by trying to reach a known host."""
     try:
-        requests.get("https://www.google.com", timeout=5)
+        request_with_backoff("https://www.google.com", timeout=5, max_retries=2, base_delay=0.5)
         return True
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.HTTPError):
         return False
 
 
@@ -47,7 +94,7 @@ class TestGoComicsIntegration:
     def test_gocomics_url_is_reachable(self, known_comic_date):
         """Test that GoComics URLs return a valid response."""
         url = build_gocomics_url("garfield", known_comic_date)
-        response = requests.get(url, timeout=30)
+        response = request_with_backoff(url, timeout=30)
         assert response.status_code == 200
         assert "gocomics.com" in response.url
 
@@ -55,7 +102,7 @@ class TestGoComicsIntegration:
     def test_gocomics_page_contains_comic_image(self, known_comic_date):
         """Test that the GoComics page contains an image element."""
         url = build_gocomics_url("garfield", known_comic_date)
-        response = requests.get(url, timeout=30)
+        response = request_with_backoff(url, timeout=30)
         # Check that the page contains image-related content
         assert response.status_code == 200
         # The page should contain img tags or comic-related content
@@ -67,7 +114,7 @@ class TestGoComicsIntegration:
         comics = ["garfield", "bignate", "calvinandhobbes"]
         for comic in comics:
             url = build_gocomics_url(comic, known_comic_date)
-            response = requests.get(url, timeout=30)
+            response = request_with_backoff(url, timeout=30)
             assert response.status_code == 200, f"Failed to reach {comic}"
 
 
@@ -79,7 +126,7 @@ class TestImageDownloadIntegration:
         """Test downloading and parsing an image from a known URL."""
         # Use a stable, publicly available test image
         test_url = "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png"
-        response = requests.get(test_url, timeout=30)
+        response = request_with_backoff(test_url, timeout=30)
         assert response.status_code == 200
 
         # Verify we can parse it as an image
@@ -186,7 +233,7 @@ class TestEndToEndScenarios:
         url = build_gocomics_url(comic_name, comic_date)
 
         # Step 4: Verify URL is reachable
-        response = requests.get(url, timeout=30)
+        response = request_with_backoff(url, timeout=30)
         assert response.status_code == 200
 
         # Step 5: Verify we can create the directory structure
@@ -211,7 +258,7 @@ class TestEndToEndScenarios:
             path = get_image_path(comic, comic_date, base_dir=temp_output_dir)
 
             # Fetch page
-            response = requests.get(url, timeout=30)
+            response = request_with_backoff(url, timeout=30)
 
             results.append({
                 "comic": comic,
@@ -290,6 +337,57 @@ class TestEndToEndScenarios:
         # All paths should be unique
         paths = [p["path"] for p in processed]
         assert len(set(paths)) == len(paths)
+
+
+class TestRequestWithBackoff:
+    """Tests for the request_with_backoff helper function."""
+
+    def test_successful_request_returns_immediately(self, requests_mock):
+        """Test that a successful request returns immediately without retries."""
+        test_url = "https://example.com/api"
+        requests_mock.get(test_url, text="OK", status_code=200)
+
+        response = request_with_backoff(test_url, timeout=5, max_retries=3, base_delay=0.01)
+        assert response.status_code == 200
+        assert response.text == "OK"
+        assert requests_mock.call_count == 1
+
+    def test_retries_on_403_error(self, requests_mock):
+        """Test that 403 errors trigger retries."""
+        test_url = "https://example.com/api"
+        # First two requests return 403, third succeeds
+        requests_mock.get(
+            test_url,
+            [
+                {"status_code": 403},
+                {"status_code": 403},
+                {"text": "OK", "status_code": 200},
+            ],
+        )
+
+        response = request_with_backoff(test_url, timeout=5, max_retries=3, base_delay=0.01)
+        assert response.status_code == 200
+        assert requests_mock.call_count == 3
+
+    def test_raises_on_max_retries_exceeded(self, requests_mock):
+        """Test that HTTPError is raised when max retries are exhausted."""
+        test_url = "https://example.com/api"
+        requests_mock.get(test_url, status_code=403)
+
+        with pytest.raises(requests.exceptions.HTTPError):
+            request_with_backoff(test_url, timeout=5, max_retries=2, base_delay=0.01)
+
+        # Should have tried 3 times (initial + 2 retries)
+        assert requests_mock.call_count == 3
+
+    def test_non_403_errors_return_immediately(self, requests_mock):
+        """Test that non-403 status codes don't trigger retries."""
+        test_url = "https://example.com/api"
+        requests_mock.get(test_url, status_code=404)
+
+        response = request_with_backoff(test_url, timeout=5, max_retries=3, base_delay=0.01)
+        assert response.status_code == 404
+        assert requests_mock.call_count == 1
 
 
 if __name__ == "__main__":
