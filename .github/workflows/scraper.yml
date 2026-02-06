@@ -49,6 +49,7 @@ jobs:
           git commit -m "Scraper results"
           git push origin "$BRANCH_NAME"
           gh pr create \
+            --base main \
             --title "Scraper results ($TIMESTAMP)" \
             --body "Automated update from scraper workflow run #${{ github.run_id }}" \
             --label "automerge" \
