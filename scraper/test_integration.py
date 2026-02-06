@@ -8,6 +8,7 @@ don't work because GoComics is behind a JS challenge.
 """
 
 import os
+import shutil
 import subprocess
 import sys
 
@@ -24,8 +25,18 @@ def network_available():
         import requests
         requests.get("https://www.google.com", timeout=5)
         return True
-    except Exception:
+    except (ImportError, requests.exceptions.RequestException):
         return False
+
+
+def force_remove_dir(path):
+    """Remove a directory tree. Tries rm -rf first, falls back to shutil."""
+    if not os.path.exists(path):
+        return
+    try:
+        subprocess.run(["rm", "-rf", path], check=True)
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        shutil.rmtree(path)
 
 
 requires_network = pytest.mark.skipif(
@@ -41,7 +52,7 @@ class TestScraperIntegration:
     def test_scraper_downloads_comics(self):
         """Delete the comics folder, run the scraper, and verify files were downloaded."""
         # Step 1: Delete the comics folder
-        subprocess.run(["rm", "-rf", COMICS_DIR], check=True)
+        force_remove_dir(COMICS_DIR)
         assert not os.path.exists(COMICS_DIR)
 
         # Step 2: Run the scraper
