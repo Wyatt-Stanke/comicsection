@@ -8,7 +8,6 @@ don't work because GoComics is behind a JS challenge.
 """
 
 import os
-import shutil
 import subprocess
 import sys
 
@@ -42,8 +41,7 @@ class TestScraperIntegration:
     def test_scraper_downloads_comics(self):
         """Delete the comics folder, run the scraper, and verify files were downloaded."""
         # Step 1: Delete the comics folder
-        if os.path.exists(COMICS_DIR):
-            shutil.rmtree(COMICS_DIR)
+        subprocess.run(["rm", "-rf", COMICS_DIR], check=True)
         assert not os.path.exists(COMICS_DIR)
 
         # Step 2: Run the scraper
