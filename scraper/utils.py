@@ -2,7 +2,7 @@
 
 import os
 from datetime import date
-
+import subprocess
 
 def get_image_path(comic_name: str, comic_date: date, base_dir: str = "..") -> str:
     """Generate the path for storing a comic image.
@@ -64,3 +64,32 @@ def is_valid_comic_name(comic_name: str) -> bool:
     if not comic_name or not isinstance(comic_name, str):
         return False
     return all(c.isascii() and (c.isalnum() or c == '-') for c in comic_name)
+
+# Get chrome version without launching a full browser, try chromedriver --version as well as google-chrome --version
+# error if both fail
+def get_chrome_version():
+    try:
+        result = subprocess.run(
+            ["chromedriver", "--version"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        version_str = result.stdout.strip().split(" ")[1]
+        return version_str
+    except Exception:
+        pass
+
+    try:
+        result = subprocess.run(
+            ["google-chrome", "--version"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        version_str = result.stdout.strip().split(" ")[2]
+        return version_str
+    except Exception:
+        pass
+
+    raise RuntimeError("Could not determine Chrome version")

@@ -9,7 +9,9 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
-from utils import build_gocomics_url, get_image_path, get_placeholder_path
+from utils import build_gocomics_url, get_image_path, get_placeholder_path, get_chrome_version
+
+
 
 chrome_options = Options()
 options = [
@@ -24,31 +26,23 @@ options = [
 if not os.getenv("DEBUG"):
     options.insert(0, "--headless=new")
 
-if os.path.exists("./extras/ublock_origin.crx"):
-    print("Using cached adblocker")
-    chrome_options.add_extension("./extras/ublock_origin.crx")
-
 for option in options:
     chrome_options.add_argument(option)
 
 # Gives a speedup by not waiting for the full page to load
 chrome_options.page_load_strategy = "eager"
 
+current_chrome_version = get_chrome_version()
+url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodversion={current_chrome_version}&acceptformat=crx2,crx3&x=id%3Dcjpalhdlnbpafiamejdnhcphjbkeiagm%26uc"
+response = requests.get(url)
+# Write to temp file
+dest_path = os.path.join("./.tmp", f"ublock_origin_{current_chrome_version}.crx")
+with open(dest_path, "wb") as f:
+    f.write(response.content)
+
+chrome_options.add_extension(dest_path)
+
 driver = webdriver.Chrome(options=chrome_options)
-
-current_chrome_version = driver.capabilities["browserVersion"]
-os.makedirs("extras", exist_ok=True)
-with open("extras/chrome_version.txt", "w+") as f:
-    read_chrome_version = f.read()
-    read_chrome_version = read_chrome_version.strip() if read_chrome_version else None
-    if read_chrome_version != current_chrome_version:
-        f.write(current_chrome_version)
-        url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodversion={current_chrome_version}&acceptformat=crx2,crx3&x=id%3Dcjpalhdlnbpafiamejdnhcphjbkeiagm%26uc"
-        print(f"Chrome version updated, redownloading adblocker from {url}")
-        response = requests.get(url)
-        with open("extras/ublock_origin.crx", "wb") as f:
-            f.write(response.content)
-
 
 def gocomics(comic_date, comic=None):
     if comic is None:
