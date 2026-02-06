@@ -13,39 +13,52 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
     steps:
+      - name: Skip for scraper PRs
+        if: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'scraper') }}
+        run: echo "Skipping tests for scraper PR"
+
       - name: Check out repo
+        if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
         uses: actions/checkout@v6
 
       - name: Set up Python
+        if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install dependencies
+        if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
         working-directory: ./scraper
         run: |
           pip install -r requirements.txt
 
       - name: Run unit tests
+        if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
         working-directory: ./scraper
         run: |
           python -m pytest test_utils.py -v
 
       - name: Run integration tests
+        if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
         working-directory: ./scraper
         run: |
           python -m pytest test_integration.py -v
 
   lint-html:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
     steps:
+      - name: Skip for scraper PRs
+        if: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'scraper') }}
+        run: echo "Skipping HTML lint for scraper PR"
+
       - name: Check out repo
+        if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
         uses: actions/checkout@v6
 
       - name: Validate HTML
+        if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
         run: |
           # Check that index.html exists and is valid
           test -f index.html
