@@ -34,13 +34,28 @@ chrome_options.page_load_strategy = "eager"
 
 current_chrome_version = get_chrome_version()
 url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodversion={current_chrome_version}&acceptformat=crx2,crx3&x=id%3Dcjpalhdlnbpafiamejdnhcphjbkeiagm%26uc"
-response = requests.get(url)
-# Write to temp file
-dest_path = os.path.join("./.tmp", f"ublock_origin_{current_chrome_version}.crx")
-os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-with open(dest_path, "wb") as f:
-    f.write(response.content)
 
+# Use a cached uBlock Origin CRX when available, and clean up old versions
+dest_dir = "./.tmp"
+os.makedirs(dest_dir, exist_ok=True)
+dest_path = os.path.join(dest_dir, f"ublock_origin_{current_chrome_version}.crx")
+
+if not os.path.exists(dest_path):
+    response = requests.get(url)
+    with open(dest_path, "wb") as f:
+        f.write(response.content)
+
+# Remove any old uBlock Origin CRX files for other Chrome versions
+try:
+    for filename in os.listdir(dest_dir):
+        if not filename.startswith("ublock_origin_") or not filename.endswith(".crx"):
+            continue
+        full_path = os.path.join(dest_dir, filename)
+        if full_path != dest_path and os.path.isfile(full_path):
+            os.remove(full_path)
+except OSError:
+    # Best-effort cleanup; ignore any filesystem errors here
+    pass
 chrome_options.add_extension(dest_path)
 
 driver = webdriver.Chrome(options=chrome_options)

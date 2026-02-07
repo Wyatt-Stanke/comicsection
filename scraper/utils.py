@@ -65,21 +65,11 @@ def is_valid_comic_name(comic_name: str) -> bool:
         return False
     return all(c.isascii() and (c.isalnum() or c == '-') for c in comic_name)
 
-# Get chrome version without launching a full browser, try chromedriver --version as well as google-chrome --version
-# error if both fail
+# Get Chrome version without launching a full browser.
+# Prefer the actual browser binary (google-chrome) and only fall back to chromedriver.
+# When using chromedriver, normalize to the major version to reduce mismatch issues.
 def get_chrome_version():
-    try:
-        result = subprocess.run(
-            ["chromedriver", "--version"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        version_str = result.stdout.strip().split(" ")[1]
-        return version_str
-    except Exception:
-        pass
-
+    # First, try the installed Google Chrome browser.
     try:
         result = subprocess.run(
             ["google-chrome", "--version"],
@@ -87,8 +77,29 @@ def get_chrome_version():
             text=True,
             check=True,
         )
-        version_str = result.stdout.strip().split(" ")[2]
-        return version_str
+        # Typical output: "Google Chrome 120.0.6099.109"
+        parts = result.stdout.strip().split(" ")
+        if len(parts) >= 3:
+            version_str = parts[2]
+            return version_str
+    except Exception:
+        pass
+
+    # Fallback: use chromedriver version, but only return the major version.
+    try:
+        result = subprocess.run(
+            ["chromedriver", "--version"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        # Typical output: "ChromeDriver 120.0.6099.109 (..."
+        parts = result.stdout.strip().split(" ")
+        if len(parts) >= 2:
+            full_version = parts[1]
+            major_version = full_version.split(".")[0]
+            if major_version.isdigit():
+                return major_version
     except Exception:
         pass
 
