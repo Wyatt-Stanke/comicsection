@@ -95,13 +95,21 @@ followedComics = [
     "daddyshome",
 ]
 
+# Allow overriding via environment variables for testing
+_comics_env = os.getenv("SCRAPER_COMICS")
+if _comics_env:
+    followedComics = [c.strip() for c in _comics_env.split(",") if c.strip()]
+
+DAYS_PAST = int(os.getenv("SCRAPER_DAYS", "7"))
+BASE_DIR = os.getenv("SCRAPER_BASE_DIR", "..")
+
 
 def scrape_job(comic_name, job_func, days_past, **kwargs):
     print(f"Scraping {comic_name} for the last {days_past} days")
     for i in range(days_past):
         comic_date = date.today() - timedelta(days=i)
-        image_path = get_image_path(comic_name, comic_date)
-        place_holder_path = get_placeholder_path(comic_name, comic_date)
+        image_path = get_image_path(comic_name, comic_date, base_dir=BASE_DIR)
+        place_holder_path = get_placeholder_path(comic_name, comic_date, base_dir=BASE_DIR)
         os.makedirs(os.path.dirname(image_path), exist_ok=True)
         if os.path.exists(image_path):
             print(f"Comic {comic_name} for {comic_date} already exists")
@@ -131,4 +139,4 @@ def scrape_job(comic_name, job_func, days_past, **kwargs):
 
 
 for comic in followedComics:
-    scrape_job(comic, gocomics, 7, comic=comic)
+    scrape_job(comic, gocomics, DAYS_PAST, comic=comic)

@@ -1,10 +1,10 @@
 """Integration tests for the comic scraper.
 
-These tests verify the scraper works end-to-end by deleting the comics
-folder and running the actual scraper to see if it can download all
-comics without problems. This exercises the real browser-based scraping
-path (Selenium + headless Chrome) instead of plain HTTP requests, which
-don't work because GoComics is behind a JS challenge.
+These tests verify the scraper works end-to-end by running the actual
+scraper against a small subset of comics into a temporary directory.
+This exercises the real browser-based scraping path (Selenium + headless
+Chrome) instead of plain HTTP requests, which don't work because
+GoComics is behind a JS challenge.
 """
 
 import os
@@ -14,9 +14,11 @@ import sys
 
 import pytest
 
-# The comics directory is one level up from the scraper directory
 SCRAPER_DIR = os.path.dirname(os.path.abspath(__file__))
-COMICS_DIR = os.path.join(SCRAPER_DIR, "..", "comics")
+
+# Test configuration: small subset to keep CI fast
+TEST_COMICS = "garfield"
+TEST_DAYS = "1"
 
 
 def network_available():
@@ -51,19 +53,24 @@ class TestScraperIntegration:
     """Integration test that runs the actual scraper end-to-end."""
 
     @requires_network
-    def test_scraper_downloads_comics(self):
-        """Delete the comics folder, run the scraper, and verify files were downloaded."""
-        # Step 1: Delete the comics folder
-        force_remove_dir(COMICS_DIR)
-        assert not os.path.exists(COMICS_DIR)
+    def test_scraper_downloads_comics(self, tmp_path):
+        """Run the scraper into a temp directory and verify files were downloaded."""
+        output_dir = str(tmp_path)
+        comics_dir = os.path.join(output_dir, "comics")
 
-        # Step 2: Run the scraper
+        # Run the scraper with a small subset, outputting to the temp directory
+        env = os.environ.copy()
+        env["SCRAPER_COMICS"] = TEST_COMICS
+        env["SCRAPER_DAYS"] = TEST_DAYS
+        env["SCRAPER_BASE_DIR"] = output_dir
+
         result = subprocess.run(
             [sys.executable, "main.py"],
             cwd=SCRAPER_DIR,
             capture_output=True,
             text=True,
-            timeout=600,  # 10 minute timeout for all comics (12 comics × 7 days)
+            timeout=120,  # 2 minute timeout for a single comic/day
+            env=env,
         )
 
         print(result.stdout)
@@ -76,18 +83,18 @@ class TestScraperIntegration:
             f"stderr: {result.stderr}"
         )
 
-        # Step 3: Verify the comics folder was created with content
-        assert os.path.exists(COMICS_DIR), "Comics directory was not created"
+        # Verify the comics folder was created with content
+        assert os.path.exists(comics_dir), "Comics directory was not created"
 
         comic_dirs = [
-            d for d in os.listdir(COMICS_DIR)
-            if os.path.isdir(os.path.join(COMICS_DIR, d))
+            d for d in os.listdir(comics_dir)
+            if os.path.isdir(os.path.join(comics_dir, d))
         ]
         assert len(comic_dirs) > 0, "No comic directories were created"
 
-        # Step 4: Verify each comic directory has downloaded files or placeholders
+        # Verify each comic directory has downloaded files or placeholders
         for comic in comic_dirs:
-            comic_dir = os.path.join(COMICS_DIR, comic)
+            comic_dir = os.path.join(comics_dir, comic)
             date_dirs = [
                 d for d in os.listdir(comic_dir)
                 if os.path.isdir(os.path.join(comic_dir, d))
