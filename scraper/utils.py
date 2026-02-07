@@ -1,6 +1,7 @@
 """Utility functions for the comic scraper."""
 
 import os
+import re
 from datetime import date
 import subprocess
 
@@ -69,6 +70,21 @@ def is_valid_comic_name(comic_name: str) -> bool:
 # Prefer the actual browser binary (google-chrome) and only fall back to chromedriver.
 # When using chromedriver, normalize to the major version to reduce mismatch issues.
 def get_chrome_version():
+    """Get the Chrome browser version.
+    
+    Attempts to determine the version by first checking the installed Chrome browser,
+    then falling back to chromedriver if needed.
+    
+    Returns:
+        str: The Chrome version string (full version from browser, or major version from chromedriver)
+        
+    Raises:
+        RuntimeError: If the Chrome version cannot be determined
+    """
+    # Regex to extract version number (e.g., "120.0.6099.109")
+    version_pattern = re.compile(r'(\d+\.\d+\.\d+\.\d+)')
+    last_error = None
+    
     # First, try the installed Google Chrome browser.
     try:
         result = subprocess.run(
@@ -76,14 +92,18 @@ def get_chrome_version():
             capture_output=True,
             text=True,
             check=True,
+            timeout=5,
         )
         # Typical output: "Google Chrome 120.0.6099.109"
-        parts = result.stdout.strip().split(" ")
-        if len(parts) >= 3:
-            version_str = parts[2]
-            return version_str
-    except Exception:
-        pass
+        match = version_pattern.search(result.stdout)
+        if match:
+            return match.group(1)
+    except FileNotFoundError as e:
+        last_error = e
+    except subprocess.CalledProcessError as e:
+        last_error = e
+    except subprocess.TimeoutExpired as e:
+        last_error = e
 
     # Fallback: use chromedriver version, but only return the major version.
     try:
@@ -92,15 +112,23 @@ def get_chrome_version():
             capture_output=True,
             text=True,
             check=True,
+            timeout=5,
         )
         # Typical output: "ChromeDriver 120.0.6099.109 (..."
-        parts = result.stdout.strip().split(" ")
-        if len(parts) >= 2:
-            full_version = parts[1]
+        match = version_pattern.search(result.stdout)
+        if match:
+            full_version = match.group(1)
             major_version = full_version.split(".")[0]
-            if major_version.isdigit():
-                return major_version
-    except Exception:
-        pass
+            return major_version
+    except FileNotFoundError as e:
+        last_error = e
+    except subprocess.CalledProcessError as e:
+        last_error = e
+    except subprocess.TimeoutExpired as e:
+        last_error = e
 
-    raise RuntimeError("Could not determine Chrome version")
+    # If we got here, both methods failed
+    error_msg = "Could not determine Chrome version"
+    if last_error:
+        error_msg += f": {last_error}"
+    raise RuntimeError(error_msg)
