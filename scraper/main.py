@@ -16,7 +16,6 @@ options = [
     "--disable-gpu",
     "--window-size=1920,1200",
     "--ignore-certificate-errors",
-    "--disable-extensions",
     "--no-sandbox",
     "--disable-dev-shm-usage",
 ]
@@ -140,3 +139,4 @@ def scrape_job(comic_name, job_func, days_past, **kwargs):
 
 for comic in followedComics:
     scrape_job(comic, gocomics, DAYS_PAST, comic=comic)
+
