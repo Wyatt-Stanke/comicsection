@@ -37,6 +37,7 @@ url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodve
 response = requests.get(url)
 # Write to temp file
 dest_path = os.path.join("./.tmp", f"ublock_origin_{current_chrome_version}.crx")
+os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 with open(dest_path, "wb") as f:
     f.write(response.content)
 
