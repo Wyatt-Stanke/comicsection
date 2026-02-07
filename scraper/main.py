@@ -41,7 +41,13 @@ os.makedirs(dest_dir, exist_ok=True)
 dest_path = os.path.join(dest_dir, f"ublock_origin_{current_chrome_version}.crx")
 
 if not os.path.exists(dest_path):
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+    
+    # Validate that we received a CRX file (should be binary content)
+    if len(response.content) < 1000:  # CRX files are typically much larger
+        raise ValueError("Downloaded CRX file appears to be too small or invalid")
+    
     with open(dest_path, "wb") as f:
         f.write(response.content)
 
