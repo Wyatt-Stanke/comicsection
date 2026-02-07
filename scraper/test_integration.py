@@ -22,7 +22,7 @@ from utils import build_gocomics_url, get_image_path, is_valid_comic_name
 def request_with_backoff(
     url: str,
     timeout: int = 30,
-    max_retries: int = 5,
+    max_retries: int = 9,
     base_delay: float = 1.0,
 ) -> requests.Response:
     """Make an HTTP GET request with exponential backoff for 403 errors.
