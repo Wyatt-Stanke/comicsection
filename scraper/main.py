@@ -9,7 +9,9 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
-from utils import build_gocomics_url, get_image_path, get_placeholder_path
+from utils import build_gocomics_url, get_image_path, get_placeholder_path, get_chrome_version
+
+
 
 chrome_options = Options()
 options = [
@@ -24,31 +26,45 @@ options = [
 if not os.getenv("DEBUG"):
     options.insert(0, "--headless=new")
 
-if os.path.exists("./extras/ublock_origin.crx"):
-    print("Using cached adblocker")
-    chrome_options.add_extension("./extras/ublock_origin.crx")
-
 for option in options:
     chrome_options.add_argument(option)
 
 # Gives a speedup by not waiting for the full page to load
 chrome_options.page_load_strategy = "eager"
 
+current_chrome_version = get_chrome_version()
+url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodversion={current_chrome_version}&acceptformat=crx2,crx3&x=id%3Dcjpalhdlnbpafiamejdnhcphjbkeiagm%26uc"
+
+# Use a cached uBlock Origin CRX when available, and clean up old versions
+dest_dir = "./.tmp"
+os.makedirs(dest_dir, exist_ok=True)
+dest_path = os.path.join(dest_dir, f"ublock_origin_{current_chrome_version}.crx")
+
+if not os.path.exists(dest_path):
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+    
+    # Validate that we received a CRX file (should be binary content)
+    if len(response.content) < 1000:  # CRX files are typically much larger
+        raise ValueError("Downloaded CRX file appears to be too small or invalid")
+    
+    with open(dest_path, "wb") as f:
+        f.write(response.content)
+
+# Remove any old uBlock Origin CRX files for other Chrome versions
+try:
+    for filename in os.listdir(dest_dir):
+        if not filename.startswith("ublock_origin_") or not filename.endswith(".crx"):
+            continue
+        full_path = os.path.join(dest_dir, filename)
+        if full_path != dest_path and os.path.isfile(full_path):
+            os.remove(full_path)
+except OSError:
+    # Best-effort cleanup; ignore any filesystem errors here
+    pass
+chrome_options.add_extension(dest_path)
+
 driver = webdriver.Chrome(options=chrome_options)
-
-current_chrome_version = driver.capabilities["browserVersion"]
-os.makedirs("extras", exist_ok=True)
-with open("extras/chrome_version.txt", "w+") as f:
-    read_chrome_version = f.read()
-    read_chrome_version = read_chrome_version.strip() if read_chrome_version else None
-    if read_chrome_version != current_chrome_version:
-        f.write(current_chrome_version)
-        url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodversion={current_chrome_version}&acceptformat=crx2,crx3&x=id%3Dcjpalhdlnbpafiamejdnhcphjbkeiagm%26uc"
-        print(f"Chrome version updated, redownloading adblocker from {url}")
-        response = requests.get(url)
-        with open("extras/ublock_origin.crx", "wb") as f:
-            f.write(response.content)
-
 
 def gocomics(comic_date, comic=None):
     if comic is None:

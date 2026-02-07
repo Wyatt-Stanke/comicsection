@@ -1,7 +1,9 @@
 """Tests for the comic scraper utility functions."""
 
 import os
+import subprocess
 from datetime import date
+from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -10,6 +12,7 @@ from utils import (
     get_placeholder_path,
     build_gocomics_url,
     is_valid_comic_name,
+    get_chrome_version,
 )
 
 
@@ -120,6 +123,86 @@ class TestIsValidComicName:
         assert is_valid_comic_name("comic/with/slash") is False
         assert is_valid_comic_name("comic.with.dot") is False
         assert is_valid_comic_name("comic%with%percent") is False
+
+
+class TestGetChromeVersion:
+    """Tests for get_chrome_version function."""
+
+    def test_gets_version_from_google_chrome(self):
+        """Test that Chrome version is extracted from google-chrome command."""
+        mock_result = MagicMock()
+        mock_result.stdout = "Google Chrome 120.0.6099.109\n"
+        
+        with patch('subprocess.run', return_value=mock_result) as mock_run:
+            version = get_chrome_version()
+            assert version == "120.0.6099.109"
+            mock_run.assert_called_once()
+            assert mock_run.call_args[0][0] == ["google-chrome", "--version"]
+
+    def test_falls_back_to_chromedriver_when_chrome_not_found(self):
+        """Test that chromedriver is used as fallback when google-chrome is not found."""
+        def side_effect(*args, **kwargs):
+            if args[0][0] == "google-chrome":
+                raise FileNotFoundError("google-chrome not found")
+            # Return chromedriver version
+            mock_result = MagicMock()
+            mock_result.stdout = "ChromeDriver 120.0.6099.109 (abc123)\n"
+            return mock_result
+        
+        with patch('subprocess.run', side_effect=side_effect):
+            version = get_chrome_version()
+            # Should return major version only when using chromedriver
+            assert version == "120"
+
+    def test_handles_different_chrome_output_format(self):
+        """Test that version is extracted even with variations in output format."""
+        mock_result = MagicMock()
+        mock_result.stdout = "Some prefix Google Chrome 131.0.7890.123 suffix"
+        
+        with patch('subprocess.run', return_value=mock_result):
+            version = get_chrome_version()
+            assert version == "131.0.7890.123"
+
+    def test_raises_runtime_error_when_both_commands_fail(self):
+        """Test that RuntimeError is raised when both google-chrome and chromedriver fail."""
+        with patch('subprocess.run', side_effect=FileNotFoundError("Command not found")):
+            with pytest.raises(RuntimeError) as exc_info:
+                get_chrome_version()
+            assert "Could not determine Chrome version" in str(exc_info.value)
+
+    def test_handles_timeout(self):
+        """Test that timeout is handled gracefully."""
+        def side_effect(*args, **kwargs):
+            raise subprocess.TimeoutExpired(cmd=args[0], timeout=5)
+        
+        with patch('subprocess.run', side_effect=side_effect):
+            with pytest.raises(RuntimeError) as exc_info:
+                get_chrome_version()
+            assert "Could not determine Chrome version" in str(exc_info.value)
+
+    def test_handles_called_process_error(self):
+        """Test that CalledProcessError is handled gracefully."""
+        def side_effect(*args, **kwargs):
+            raise subprocess.CalledProcessError(1, args[0])
+        
+        with patch('subprocess.run', side_effect=side_effect):
+            with pytest.raises(RuntimeError) as exc_info:
+                get_chrome_version()
+            assert "Could not determine Chrome version" in str(exc_info.value)
+
+    def test_chromedriver_fallback_extracts_major_version(self):
+        """Test that only the major version is returned when using chromedriver."""
+        def side_effect(*args, **kwargs):
+            if args[0][0] == "google-chrome":
+                raise FileNotFoundError()
+            mock_result = MagicMock()
+            mock_result.stdout = "ChromeDriver 125.0.6422.141 (hash here)"
+            return mock_result
+        
+        with patch('subprocess.run', side_effect=side_effect):
+            version = get_chrome_version()
+            assert version == "125"
+            assert "." not in version  # Should be major version only
 
 
 if __name__ == "__main__":
