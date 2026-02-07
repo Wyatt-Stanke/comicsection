@@ -25,7 +25,9 @@ def network_available():
         import requests
         requests.get("https://www.google.com", timeout=5)
         return True
-    except (ImportError, requests.exceptions.RequestException):
+    except ImportError:
+        return False
+    except requests.exceptions.RequestException:
         return False
 
 
