@@ -29,7 +29,9 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-
+      - name: Set up Chrome
+        uses: browser-actions/setup-chrome@v2
+        if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
       - name: Install dependencies
         if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
         working-directory: ./scraper

@@ -1,295 +1,108 @@
 """Integration tests for the comic scraper.
 
-These tests verify that multiple components work together and that
-external services are reachable. They make actual network requests.
-
-Tests marked with @pytest.mark.network require network access and will
-be skipped in environments without internet connectivity.
+These tests verify the scraper works end-to-end by running the actual
+scraper against a small subset of comics into a temporary directory.
+This exercises the real browser-based scraping path (Selenium + headless
+Chrome) instead of plain HTTP requests, which don't work because
+GoComics is behind a JS challenge.
 """
 
 import os
-from datetime import date, timedelta
-from io import BytesIO
+import shutil
+import subprocess
+import sys
 
 import pytest
-import requests
-from PIL import Image
 
-from utils import build_gocomics_url, get_image_path, is_valid_comic_name
+SCRAPER_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Test configuration: small subset to keep CI fast
+TEST_COMICS = "garfield"
+TEST_DAYS = "1"
 
 
 def network_available():
     """Check if network is available by trying to reach a known host."""
     try:
+        import requests
         requests.get("https://www.google.com", timeout=5)
         return True
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+    except ImportError:
+        return False
+    except requests.exceptions.RequestException:
         return False
 
-
-# Skip decorator for network tests
 requires_network = pytest.mark.skipif(
     not network_available(),
     reason="Network not available"
 )
 
 
-class TestGoComicsIntegration:
-    """Integration tests for GoComics fetching."""
-
-    @pytest.fixture
-    def known_comic_date(self):
-        """Return a date that we know has comics available."""
-        # Use a date from the past that we know has comics
-        return date(2024, 1, 15)
+class TestScraperIntegration:
+    """Integration test that runs the actual scraper end-to-end."""
 
     @requires_network
-    def test_gocomics_url_is_reachable(self, known_comic_date):
-        """Test that GoComics URLs return a valid response."""
-        url = build_gocomics_url("garfield", known_comic_date)
-        response = requests.get(url, timeout=30)
-        assert response.status_code == 200
-        assert "gocomics.com" in response.url
+    def test_scraper_downloads_comics(self, tmp_path):
+        """Run the scraper into a temp directory and verify files were downloaded."""
+        output_dir = str(tmp_path)
+        comics_dir = os.path.join(output_dir, "comics")
 
-    @requires_network
-    def test_gocomics_page_contains_comic_image(self, known_comic_date):
-        """Test that the GoComics page contains an image element."""
-        url = build_gocomics_url("garfield", known_comic_date)
-        response = requests.get(url, timeout=30)
-        # Check that the page contains image-related content
-        assert response.status_code == 200
-        # The page should contain img tags or comic-related content
-        assert "<img" in response.text or "comic" in response.text.lower()
+        # Run the scraper with a small subset, outputting to the temp directory
+        env = os.environ.copy()
+        env["SCRAPER_COMICS"] = TEST_COMICS
+        env["SCRAPER_DAYS"] = TEST_DAYS
+        env["SCRAPER_BASE_DIR"] = output_dir
 
-    @requires_network
-    def test_multiple_comics_are_reachable(self, known_comic_date):
-        """Test that multiple known comics are reachable."""
-        comics = ["garfield", "bignate", "calvinandhobbes"]
-        for comic in comics:
-            url = build_gocomics_url(comic, known_comic_date)
-            response = requests.get(url, timeout=30)
-            assert response.status_code == 200, f"Failed to reach {comic}"
+        result = subprocess.run(
+            [sys.executable, "main.py"],
+            cwd=SCRAPER_DIR,
+            capture_output=True,
+            text=True,
+            timeout=120,  # 2 minute timeout for a single comic/day
+            env=env,
+        )
 
+        print(result.stdout)
+        if result.stderr:
+            print(result.stderr, file=sys.stderr)
 
-class TestImageDownloadIntegration:
-    """Integration tests for image downloading."""
+        assert result.returncode == 0, (
+            f"Scraper failed with return code {result.returncode}\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
 
-    @requires_network
-    def test_can_download_and_parse_image(self):
-        """Test downloading and parsing an image from a known URL."""
-        # Use a stable, publicly available test image
-        test_url = "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png"
-        response = requests.get(test_url, timeout=30)
-        assert response.status_code == 200
+        # Verify the comics folder was created with content
+        assert os.path.exists(comics_dir), "Comics directory was not created"
 
-        # Verify we can parse it as an image
-        image = Image.open(BytesIO(response.content))
-        assert image is not None
-        assert image.size[0] > 0
-        assert image.size[1] > 0
+        comic_dirs = [
+            d for d in os.listdir(comics_dir)
+            if os.path.isdir(os.path.join(comics_dir, d))
+        ]
+        assert len(comic_dirs) > 0, "No comic directories were created"
 
-    def test_can_parse_image_from_bytes(self):
-        """Test that PIL can parse image data from bytes (offline test)."""
-        # Create a simple PNG image in memory
-        img = Image.new('RGB', (10, 10), color='red')
-        buffer = BytesIO()
-        img.save(buffer, format='PNG')
-        buffer.seek(0)
+        # Verify each comic directory has downloaded files or placeholders
+        for comic in comic_dirs:
+            comic_dir = os.path.join(comics_dir, comic)
+            date_dirs = [
+                d for d in os.listdir(comic_dir)
+                if os.path.isdir(os.path.join(comic_dir, d))
+            ]
+            assert len(date_dirs) > 0, (
+                f"No date directories found for comic '{comic}'"
+            )
 
-        # Parse it back
-        parsed = Image.open(buffer)
-        assert parsed.size == (10, 10)
+            has_content = False
+            for date_dir in date_dirs:
+                full_date_dir = os.path.join(comic_dir, date_dir)
+                files = os.listdir(full_date_dir)
+                if "comic.webp" in files or ".placeholder" in files:
+                    has_content = True
+                    break
 
-
-class TestPathAndUrlWorkflow:
-    """Integration tests for path generation and URL building workflow."""
-
-    def test_full_workflow_path_generation(self):
-        """Test the complete workflow of validating, building URL, and generating path."""
-        comic_name = "garfield"
-        comic_date = date(2024, 6, 15)
-
-        # Step 1: Validate comic name
-        assert is_valid_comic_name(comic_name) is True
-
-        # Step 2: Build URL
-        url = build_gocomics_url(comic_name, comic_date)
-        assert "garfield" in url
-        assert "2024" in url
-
-        # Step 3: Generate storage path
-        path = get_image_path(comic_name, comic_date)
-        assert comic_name in path
-        assert "2024-06-15" in path
-        assert path.endswith("comic.webp")
-
-    def test_workflow_with_multiple_dates(self):
-        """Test workflow with multiple consecutive dates (like the scraper does)."""
-        comic_name = "bignate"
-        days_past = 3
-
-        paths = []
-        urls = []
-
-        for i in range(days_past):
-            comic_date = date.today() - timedelta(days=i)
-
-            # Validate
-            assert is_valid_comic_name(comic_name)
-
-            # Build URL
-            url = build_gocomics_url(comic_name, comic_date)
-            urls.append(url)
-
-            # Generate path
-            path = get_image_path(comic_name, comic_date)
-            paths.append(path)
-
-        # All paths should be unique
-        assert len(set(paths)) == days_past
-
-        # All URLs should be unique
-        assert len(set(urls)) == days_past
-
-    def test_workflow_rejects_invalid_comic(self):
-        """Test that the workflow correctly rejects invalid comic names."""
-        invalid_names = ["", None, "comic with spaces", "comic@special"]
-
-        for name in invalid_names:
-            assert is_valid_comic_name(name) is False
-
-
-class TestEndToEndScenarios:
-    """End-to-end test scenarios simulating actual usage."""
-
-    @pytest.fixture
-    def temp_output_dir(self, tmp_path):
-        """Create a temporary directory for test outputs."""
-        output_dir = tmp_path / "comics"
-        output_dir.mkdir()
-        return str(output_dir)
-
-    @requires_network
-    def test_complete_comic_fetch_scenario(self, temp_output_dir):
-        """Test a complete scenario: validate -> build URL -> fetch page -> verify."""
-        comic_name = "garfield"
-        comic_date = date(2024, 1, 15)
-
-        # Step 1: Validate the comic name
-        assert is_valid_comic_name(comic_name)
-
-        # Step 2: Generate the storage path
-        image_path = get_image_path(comic_name, comic_date, base_dir=temp_output_dir)
-        assert temp_output_dir in image_path
-
-        # Step 3: Build the URL
-        url = build_gocomics_url(comic_name, comic_date)
-
-        # Step 4: Verify URL is reachable
-        response = requests.get(url, timeout=30)
-        assert response.status_code == 200
-
-        # Step 5: Verify we can create the directory structure
-        os.makedirs(os.path.dirname(image_path), exist_ok=True)
-        assert os.path.exists(os.path.dirname(image_path))
-
-    @requires_network
-    def test_multiple_comics_scrape_scenario(self, temp_output_dir):
-        """Test scraping multiple comics like the actual scraper does."""
-        comics = ["garfield", "bignate"]
-        comic_date = date(2024, 1, 15)
-
-        results = []
-
-        for comic in comics:
-            # Validate
-            if not is_valid_comic_name(comic):
-                continue
-
-            # Build URL and path
-            url = build_gocomics_url(comic, comic_date)
-            path = get_image_path(comic, comic_date, base_dir=temp_output_dir)
-
-            # Fetch page
-            response = requests.get(url, timeout=30)
-
-            results.append({
-                "comic": comic,
-                "url": url,
-                "path": path,
-                "status": response.status_code,
-            })
-
-        # All comics should be successfully fetched
-        assert len(results) == len(comics)
-        for result in results:
-            assert result["status"] == 200
-
-    def test_complete_workflow_without_network(self, temp_output_dir):
-        """Test the complete workflow without making network requests."""
-        comic_name = "garfield"
-        comic_date = date(2024, 1, 15)
-
-        # Step 1: Validate the comic name
-        assert is_valid_comic_name(comic_name)
-
-        # Step 2: Generate the storage path
-        image_path = get_image_path(comic_name, comic_date, base_dir=temp_output_dir)
-        assert temp_output_dir in image_path
-        assert comic_name in image_path
-        assert "2024-01-15" in image_path
-
-        # Step 3: Build the URL
-        url = build_gocomics_url(comic_name, comic_date)
-        assert "gocomics.com" in url
-        assert comic_name in url
-
-        # Step 4: Verify we can create the directory structure
-        os.makedirs(os.path.dirname(image_path), exist_ok=True)
-        assert os.path.exists(os.path.dirname(image_path))
-
-        # Step 5: Simulate saving an image
-        img = Image.new('RGB', (100, 100), color='white')
-        img.save(image_path.replace('.webp', '.png'), format='PNG')
-        assert os.path.exists(image_path.replace('.webp', '.png'))
-
-    def test_batch_processing_workflow(self, temp_output_dir):
-        """Test processing multiple comics over multiple days (offline)."""
-        comics = ["garfield", "bignate", "calvinandhobbes"]
-        days = 3
-
-        processed = []
-
-        for comic in comics:
-            if not is_valid_comic_name(comic):
-                continue
-
-            for i in range(days):
-                comic_date = date(2024, 1, 15) - timedelta(days=i)
-
-                url = build_gocomics_url(comic, comic_date)
-                path = get_image_path(comic, comic_date, base_dir=temp_output_dir)
-
-                # Create directory
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-
-                processed.append({
-                    "comic": comic,
-                    "date": comic_date,
-                    "url": url,
-                    "path": path,
-                })
-
-        # Should have processed comics * days entries
-        assert len(processed) == len(comics) * days
-
-        # All URLs should be unique
-        urls = [p["url"] for p in processed]
-        assert len(set(urls)) == len(urls)
-
-        # All paths should be unique
-        paths = [p["path"] for p in processed]
-        assert len(set(paths)) == len(paths)
+            assert has_content, (
+                f"No comic.webp or .placeholder found for comic '{comic}'"
+            )
 
 
 if __name__ == "__main__":
