@@ -32,17 +32,6 @@ def network_available():
     except requests.exceptions.RequestException:
         return False
 
-
-def force_remove_dir(path):
-    """Remove a directory tree. Tries rm -rf first, falls back to shutil."""
-    if not os.path.exists(path):
-        return
-    try:
-        subprocess.run(["rm", "-rf", path], check=True)
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        shutil.rmtree(path)
-
-
 requires_network = pytest.mark.skipif(
     not network_available(),
     reason="Network not available"
