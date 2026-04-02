@@ -19,6 +19,8 @@ jobs:
       - uses: browser-actions/setup-chrome@v2
       - name: Run scraper
         working-directory: ./scraper
+        env:
+          CHROME_PATH: "/opt/hostedtoolcache/setup-chrome/chrome/stable/x64/chrome"
         run: |
           pip install -r requirements.txt
           python main.py
