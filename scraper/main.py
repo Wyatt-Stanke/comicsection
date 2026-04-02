@@ -95,14 +95,11 @@ async def __main__():
             "--disable-gpu",
             "--window-size=1920,1200",
             "--ignore-certificate-errors",
-            "--no-sandbox",
             "--disable-dev-shm-usage",
         ],
         headless=not os.getenv("HEADED"),
-        browser_executable_path=os.getenv("CHROME_PATH", None),
-        sandbox=True,
-        browser_connection_timeout=5,
-        browser_connection_max_tries=5
+        browser_executable_path=os.getenv("CHROME_PATH", None) or None,
+        sandbox=False,
     )
     driver = await zd.start(config=config)
 
