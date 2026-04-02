@@ -91,29 +91,7 @@ async def scrape_job(driver, comic_name, job_func, days_past, BASE_DIR, **kwargs
 
 async def __main__():
     import sys
-    import subprocess
-    import logging
 
-    # Enable zendriver debug logging
-    logging.basicConfig(level=logging.DEBUG)
-
-    print("=== Scraper starting ===", flush=True)
-    print(f"Python: {sys.version}", flush=True)
-    print(f"Platform: {sys.platform}", flush=True)
-
-    # Try to find chrome
-    try:
-        from zendriver.core.config import find_executable
-        chrome_path = os.getenv("CHROME_PATH", None) or None
-        if not chrome_path:
-            chrome_path = str(find_executable())
-        print(f"Chrome path: {chrome_path}", flush=True)
-        result = subprocess.run([chrome_path, "--version"], capture_output=True, text=True, timeout=10)
-        print(f"Chrome version: {result.stdout.strip()}", flush=True)
-    except Exception as e:
-        print(f"Chrome detection error: {e}", flush=True)
-
-    print("Creating config...", flush=True)
     config = zd.Config(
         browser_args=[
             "--disable-gpu",
@@ -127,19 +105,15 @@ async def __main__():
         browser_connection_timeout=2,
         browser_connection_max_tries=10,
     )
-    print(f"Config created. headless={config.headless}, sandbox={config.sandbox}", flush=True)
-    print(f"Browser args: {config()}", flush=True)
 
-    print("Starting browser...", flush=True)
     try:
         driver = await asyncio.wait_for(zd.start(config=config), timeout=60)
     except asyncio.TimeoutError:
-        print("ERROR: Browser start timed out after 60 seconds", flush=True)
+        print("ERROR: Browser start timed out after 60 seconds")
         sys.exit(1)
     except Exception as e:
-        print(f"ERROR: Browser start failed: {e}", flush=True)
+        print(f"ERROR: Browser start failed: {e}")
         sys.exit(1)
-    print("Browser started successfully!", flush=True)
 
     followedComics = [
         "bignate",
