@@ -16,11 +16,11 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build scraper Docker image
-        run: docker build -t comic-scraper .
+        run: docker build --build-arg SWAY_UNSUPPORTED_GPU=true -t comic-scraper .
 
       - name: Run scraper in Docker
         run: |
-          docker run --rm \
+          docker run --rm --privileged \
             -v ${{ github.workspace }}/comics:/workspace/comics \
             comic-scraper
 

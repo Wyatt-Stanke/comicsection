@@ -1,5 +1,12 @@
 FROM ghcr.io/stephanlensky/swayvnc-chrome:latest
 
+ARG SWAY_UNSUPPORTED_GPU
+
+# Add --unsupported-gpu flag to sway command (needed for environments without GPU, e.g. CI)
+RUN if [ "$SWAY_UNSUPPORTED_GPU" = "true" ]; then \
+    sed -i 's/sway &/sway --unsupported-gpu \&/' /entrypoint_user.sh; \
+    fi
+
 ENV PYTHONUNBUFFERED=1
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -29,7 +36,7 @@ COPY --chown=$DOCKER_USER:$DOCKER_USER scraper/main.py scraper/utils.py /app/
 # Add venv to PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Run headed inside the swayvnc container
+# Run headed inside the swayvnc container (display provided by sway compositor)
 ENV HEADED=1
 ENV SCRAPER_BASE_DIR=/workspace
 
