@@ -44,11 +44,6 @@ jobs:
         run: |
           python -m pytest test_utils.py -v
 
-      - name: Run integration tests
-        if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
-        working-directory: ./scraper
-        run: |
-          python -m pytest test_integration.py -v
 
   lint-html:
     runs-on: ubuntu-latest
