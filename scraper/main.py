@@ -100,6 +100,8 @@ async def __main__():
         headless=not os.getenv("HEADED"),
         browser_executable_path=os.getenv("CHROME_PATH", None) or None,
         sandbox=False,
+        browser_connection_timeout=2,
+        browser_connection_max_tries=10,
     )
     driver = await zd.start(config=config)
 
