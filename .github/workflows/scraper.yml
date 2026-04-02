@@ -29,7 +29,9 @@ jobs:
 
       - name: Run scraper
         working-directory: ./scraper
-        timeout-minutes: 5
+        timeout-minutes: 10
+        env:
+          PYTHONUNBUFFERED: "1"
         run: |
           uv venv
           uv pip install -r requirements.txt
