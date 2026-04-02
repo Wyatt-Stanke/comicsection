@@ -5,6 +5,7 @@ import re
 from datetime import date
 import subprocess
 
+
 def get_image_path(comic_name: str, comic_date: date, base_dir: str = "..") -> str:
     """Generate the path for storing a comic image.
 
@@ -21,7 +22,9 @@ def get_image_path(comic_name: str, comic_date: date, base_dir: str = "..") -> s
     )
 
 
-def get_placeholder_path(comic_name: str, comic_date: date, base_dir: str = "..") -> str:
+def get_placeholder_path(
+    comic_name: str, comic_date: date, base_dir: str = ".."
+) -> str:
     """Generate the path for a placeholder file.
 
     Args:
@@ -64,28 +67,58 @@ def is_valid_comic_name(comic_name: str) -> bool:
     """
     if not comic_name or not isinstance(comic_name, str):
         return False
-    return all(c.isascii() and (c.isalnum() or c == '-') for c in comic_name)
+    return all(c.isascii() and (c.isalnum() or c == "-") for c in comic_name)
+
 
 # Get Chrome version without launching a full browser.
 # Prefer the actual browser binary (google-chrome) and only fall back to chromedriver.
 # When using chromedriver, normalize to the major version to reduce mismatch issues.
 def get_chrome_version():
     """Get the Chrome browser version.
-    
+
     Attempts to determine the version by first checking the installed Chrome browser,
     then falling back to chromedriver if needed.
-    
+
     Returns:
         str: The Chrome version string (full version from browser, or major version from chromedriver)
-        
+
     Raises:
         RuntimeError: If the Chrome version cannot be determined
     """
     # Regex to extract version number (e.g., "120.0.6099.109")
-    version_pattern = re.compile(r'(\d+\.\d+\.\d+\.\d+)')
+    version_pattern = re.compile(r"(\d+\.\d+\.\d+\.\d+)")
     last_error = None
-    
-    # First, try the installed Google Chrome browser.
+
+    # First, try a user-specified Chrome binary path.
+    chrome_path = os.getenv("CHROME_PATH")
+    if chrome_path:
+        try:
+            result = subprocess.run(
+                [chrome_path, "--version"],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=5,
+            )
+            match = version_pattern.search(result.stdout)
+            if match:
+                return match.group(1)
+            elif os.name == "nt":
+                # On Windows, --version doesn't output to stdout. Use PowerShell to get the file version.
+                ps_cmd = rf'(Get-Item "{chrome_path}").VersionInfo.ProductVersion'
+                result = subprocess.run(
+                    ["powershell", "-NoProfile", "-Command", ps_cmd],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                match = version_pattern.search(result.stdout)
+                if match:
+                    return match.group(1)
+        except Exception as e:
+            last_error = e
+
+    # Then, try the installed Google Chrome browser.
     try:
         result = subprocess.run(
             ["google-chrome", "--version"],

@@ -9,8 +9,12 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
-from utils import build_gocomics_url, get_image_path, get_placeholder_path, get_chrome_version
-
+from utils import (
+    build_gocomics_url,
+    get_image_path,
+    get_placeholder_path,
+    get_chrome_version,
+)
 
 
 chrome_options = Options()
@@ -31,6 +35,10 @@ for option in options:
 # Gives a speedup by not waiting for the full page to load
 chrome_options.page_load_strategy = "eager"
 
+chrome_path = os.getenv("CHROME_PATH")
+if chrome_path:
+    chrome_options.binary_location = os.path.abspath(chrome_path)
+
 current_chrome_version = get_chrome_version()
 url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodversion={current_chrome_version}&acceptformat=crx2,crx3&x=id%3Dcjpalhdlnbpafiamejdnhcphjbkeiagm%26uc"
 
@@ -42,11 +50,11 @@ dest_path = os.path.join(dest_dir, f"ublock_origin_{current_chrome_version}.crx"
 if not os.path.exists(dest_path):
     response = requests.get(url, timeout=30)
     response.raise_for_status()
-    
+
     # Validate that we received a CRX file (should be binary content)
     if len(response.content) < 1000:  # CRX files are typically much larger
         raise ValueError("Downloaded CRX file appears to be too small or invalid")
-    
+
     with open(dest_path, "wb") as f:
         f.write(response.content)
 
@@ -64,6 +72,7 @@ except OSError:
 chrome_options.add_extension(dest_path)
 
 driver = webdriver.Chrome(options=chrome_options)
+
 
 def gocomics(comic_date, comic=None):
     if comic is None:
@@ -124,7 +133,9 @@ def scrape_job(comic_name, job_func, days_past, **kwargs):
     for i in range(days_past):
         comic_date = date.today() - timedelta(days=i)
         image_path = get_image_path(comic_name, comic_date, base_dir=BASE_DIR)
-        place_holder_path = get_placeholder_path(comic_name, comic_date, base_dir=BASE_DIR)
+        place_holder_path = get_placeholder_path(
+            comic_name, comic_date, base_dir=BASE_DIR
+        )
         os.makedirs(os.path.dirname(image_path), exist_ok=True)
         if os.path.exists(image_path):
             print(f"Comic {comic_name} for {comic_date} already exists")
@@ -155,4 +166,3 @@ def scrape_job(comic_name, job_func, days_past, **kwargs):
 
 for comic in followedComics:
     scrape_job(comic, gocomics, DAYS_PAST, comic=comic)
-
