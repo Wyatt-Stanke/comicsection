@@ -21,8 +21,15 @@ jobs:
       - name: Set up Python
         run: uv python install 3.13
 
+      - name: Debug Chrome
+        run: |
+          which google-chrome || echo "google-chrome not on PATH"
+          google-chrome --version || echo "Failed to get Chrome version"
+          whoami
+
       - name: Run scraper
         working-directory: ./scraper
+        timeout-minutes: 5
         run: |
           uv venv
           uv pip install -r requirements.txt
