@@ -1,3 +1,4 @@
+import asyncio
 import os
 from datetime import date, datetime, time, timedelta
 from io import BytesIO
@@ -127,3 +128,7 @@ async def __main__():
 
     for comic in followedComics:
         await scrape_job(driver, comic, gocomics, DAYS_PAST, BASE_DIR, comic=comic)
+
+
+if __name__ == "__main__":
+    asyncio.run(__main__())
