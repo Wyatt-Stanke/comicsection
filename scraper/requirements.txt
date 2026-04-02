@@ -1,4 +1,4 @@
-zendriver=0.15.3
+zendriver==0.15.3
 pillow==12.1.1
 pytest==9.0.2
 requests==2.32.5
