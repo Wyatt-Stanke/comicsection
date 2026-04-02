@@ -14,16 +14,18 @@ jobs:
     steps:
       - name: Check out repo
         uses: actions/checkout@v6
-      - name: Set up Python
-        uses: actions/setup-python@v6
-      - uses: browser-actions/setup-chrome@v2
-      - name: Run scraper
-        working-directory: ./scraper
-        env:
-          CHROME_PATH: "/opt/hostedtoolcache/setup-chrome/chrome/stable/x64/chrome"
+
+      - name: Build scraper Docker image
+        run: docker build -t comic-scraper .
+
+      - name: Run scraper in Docker
         run: |
-          pip install -r requirements.txt
-          python main.py
+          docker run --rm \
+            -v ${{ github.workspace }}/comics:/workspace/comics \
+            comic-scraper
+
+      - name: Fix file ownership
+        run: sudo chown -R $(id -u):$(id -g) comics/
 
       - name: Set Git config
         run: |
