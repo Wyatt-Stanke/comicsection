@@ -22,7 +22,7 @@ jobs:
 
       - name: Check out repo
         if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Python
         if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
@@ -54,7 +54,7 @@ jobs:
 
       - name: Check out repo
         if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Validate HTML
         if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
