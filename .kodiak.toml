@@ -9,3 +9,9 @@ strip_html_comments = true
 [merge]
 blocking_title_regex = "^\\[WIP*"
 method = "squash"
+
+[update]
+ignored_usernames = ["renovate"]
+
+[approve]
+auto_approve_usernames = ["renovate"]
