@@ -122,6 +122,9 @@
         .then((data) => {
           comicsData = data;
           init();
+        })
+        .catch((err) => {
+          console.error("Failed to load comics.json:", err);
         });
 
       function init() {
