@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 from datetime import date, datetime, time, timedelta
 from io import BytesIO
@@ -115,28 +116,20 @@ async def __main__():
         print(f"ERROR: Browser start failed: {e}")
         sys.exit(1)
 
+    DAYS_PAST = int(os.getenv("SCRAPER_DAYS", "7"))
+    BASE_DIR = os.getenv("SCRAPER_BASE_DIR", "..")
+
     followedComics = [
-        "bignate",
-        "pearlsbeforeswine",
-        "luann",
-        "brewsterrockit",
-        "forbetterorforworse",
-        "calvinandhobbes",
-        "garfield",
-        "pickles",
-        "foxtrot",
-        "doonesbury",
-        "crabgrass",
-        "daddyshome",
+        comic["id"]
+        for comic in json.loads(
+            Path(os.path.join(BASE_DIR, "comics.json")).read_text(encoding="utf-8")
+        )
     ]
 
     # Allow overriding via environment variables for testing
     _comics_env = os.getenv("SCRAPER_COMICS")
     if _comics_env:
         followedComics = [c.strip() for c in _comics_env.split(",") if c.strip()]
-
-    DAYS_PAST = int(os.getenv("SCRAPER_DAYS", "7"))
-    BASE_DIR = os.getenv("SCRAPER_BASE_DIR", "..")
 
     for comic in followedComics:
         await scrape_job(driver, comic, gocomics, DAYS_PAST, BASE_DIR, comic=comic)
