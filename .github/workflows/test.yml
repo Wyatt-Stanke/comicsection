@@ -28,7 +28,7 @@ jobs:
         if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
         uses: actions/setup-python@v7
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - name: Set up Chrome
         uses: browser-actions/setup-chrome@v2
         if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'scraper') }}
