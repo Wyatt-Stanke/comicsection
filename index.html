@@ -115,21 +115,19 @@
       <div id="comicsContainerFullscreen"></div>
     </div>
     <script>
-      const comicsData = [
-        { id: "bignate", name: "Big Nate" },
-        { id: "pearlsbeforeswine", name: "Pearls Before Swine" },
-        { id: "luann", name: "Luann" },
-        { id: "brewsterrockit", name: "Brewster Rockit" },
-        { id: "forbetterorforworse", name: "For Better or For Worse" },
-        { id: "calvinandhobbes", name: "Calvin and Hobbes" },
-        { id: "garfield", name: "Garfield" },
-        { id: "pickles", name: "Pickles" },
-        { id: "foxtrot", name: "Foxtrot" },
-        { id: "doonesbury", name: "Doonesbury" },
-        { id: "crabgrass", name: "Crabgrass" },
-        { id: "daddyshome", name: "Daddy's Home" },
-      ];
+      let comicsData = [];
 
+      fetch("./comics.json")
+        .then((r) => r.json())
+        .then((data) => {
+          comicsData = data;
+          init();
+        })
+        .catch((err) => {
+          console.error("Failed to load comics.json:", err);
+        });
+
+      function init() {
       const today = new Date();
       const timezoneOffset = today.getTimezoneOffset() * 60000;
       let currentDate = new Date(today.getTime() - timezoneOffset);
@@ -445,6 +443,7 @@
         xDown = null;
         yDown = null;
       }
+      } // end init()
     </script>
   </body>
 </html>
